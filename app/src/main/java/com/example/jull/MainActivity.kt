@@ -76,8 +76,10 @@ import com.google.firebase.auth.FirebaseAuth
 
 
 class MainActivity : ComponentActivity() {
-    override fun onCreate(savedInstanceState: Bundle?) {
 
+
+
+    override fun onCreate(savedInstanceState: Bundle?) {
         super.onCreate(savedInstanceState)
         enableEdgeToEdge()
         setContent {
@@ -90,8 +92,10 @@ class MainActivity : ComponentActivity() {
                 }
             }
         }
+
     }
 }
+
 
 @Composable
 fun Greeting(modifier: Modifier = Modifier) {
