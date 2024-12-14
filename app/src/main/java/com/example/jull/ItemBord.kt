@@ -1,5 +1,6 @@
 package com.example.jull
 
+import androidx.compose.foundation.clickable
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.PaddingValues
@@ -31,21 +32,27 @@ import androidx.compose.ui.unit.dp
 import coil.compose.AsyncImage
 
 @Composable
-fun ItemBord(items: List<Item>){
+fun ItemBord(
+    items: List<Item>,
+    onItemClick: (Item) -> Unit = {}
+) {
     LazyVerticalGrid(
-        columns = GridCells.Fixed(2), // 두 개의 열
+        columns = GridCells.Fixed(2),
         contentPadding = PaddingValues(4.dp)
     ) {
         items(items.chunked(1)) { rowItems ->
             Row {
                 rowItems.forEach { item ->
                     Card(
-                        modifier = Modifier.padding(8.dp),
+                        modifier = Modifier
+                            .padding(8.dp)
+                            .clickable { onItemClick(item) }
                     ) {
                         Box(
                             modifier = Modifier
-                                .fillMaxWidth().fillMaxHeight()
-                        ){
+                                .fillMaxWidth()
+                                .fillMaxHeight()
+                        ) {
                             Column(modifier = Modifier.padding(10.dp)) {
                                 AsyncImage(
                                     model = item.imageUrl,
@@ -60,9 +67,9 @@ fun ItemBord(items: List<Item>){
                             var isFavorite by remember { mutableStateOf(false) }
                             IconButton(
                                 onClick = { isFavorite = !isFavorite },
-                                modifier = Modifier.run { align(Alignment.TopEnd).padding(4.dp) }
-
-
+                                modifier = Modifier
+                                    .align(Alignment.TopEnd)
+                                    .padding(4.dp)
                             ) {
                                 Icon(
                                     imageVector = if (isFavorite) Icons.Filled.Favorite else Icons.Outlined.FavoriteBorder,
@@ -80,7 +87,7 @@ fun ItemBord(items: List<Item>){
 
 @Preview
 @Composable
-fun ItemBord(){
+fun ItemBordPreview() {
     val items = listOf(
         Item("https://img.schoolmusic.co.kr/prod_picture/22/13/650_23171.jpg", "상품1", "부제목1", "카테고리1", "10,000원"),
         Item("https://example.com/image2.jpg", "상품2", "부제목2", "카테고리2", "20,000원"),
@@ -92,5 +99,5 @@ fun ItemBord(){
         Item("https://example.com/image2.jpg", "상품8", "부제목2", "카테고리2", "20,000원"),
     )
 
-    ItemBord(items)
+    ItemBord(items = items)
 }

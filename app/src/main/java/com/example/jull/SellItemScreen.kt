@@ -1,6 +1,7 @@
 package com.example.jull
 
 import android.net.Uri
+import android.widget.Toast
 import androidx.activity.compose.rememberLauncherForActivityResult
 import androidx.activity.result.contract.ActivityResultContracts
 import androidx.compose.foundation.Image
@@ -23,6 +24,7 @@ import androidx.compose.foundation.verticalScroll
 import androidx.compose.material3.Button
 import androidx.compose.material3.ButtonDefaults
 import androidx.compose.material3.Checkbox
+import androidx.compose.material3.CircularProgressIndicator
 import androidx.compose.material3.ExperimentalMaterial3Api
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.OutlinedTextField
@@ -38,11 +40,17 @@ import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.layout.ContentScale
+import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.input.KeyboardType
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import coil.compose.rememberAsyncImagePainter
+import com.google.firebase.auth.FirebaseAuth
+import com.google.firebase.firestore.FirebaseFirestore
+import com.google.firebase.storage.FirebaseStorage
+import java.util.UUID
+import java.util.Date
 
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
@@ -51,6 +59,19 @@ fun SellItemPage() {
     var title by remember { mutableStateOf("") }
     var description by remember { mutableStateOf("내용을 입력해주세요") }
     var price by remember { mutableStateOf("") }
+    var isLoading by remember { mutableStateOf(false) }
+    val context = LocalContext.current
+
+    val selectedCategories = remember { mutableStateListOf<String>() }
+    val storage = FirebaseStorage.getInstance()
+    val firestore = FirebaseFirestore.getInstance()
+    val auth = FirebaseAuth.getInstance()
+
+    val imagePickerLauncher = rememberLauncherForActivityResult(
+        contract = ActivityResultContracts.GetContent()
+    ) { uri: Uri? ->
+        imageUri = uri
+    }
 
     val brandTypes = listOf(
         BrandType("국내 브랜드", listOf("나이키", "아디다스", "뉴발란스", "푸마", "컨버스")),
@@ -78,16 +99,19 @@ fun SellItemPage() {
             "그외")),
     )
 
-    val imagePickerLauncher = rememberLauncherForActivityResult(
-        contract = ActivityResultContracts.GetContent()
-    ) { uri: Uri? ->
-        imageUri = uri
+    if (isLoading) {
+        Box(
+            modifier = Modifier.fillMaxSize(),
+            contentAlignment = Alignment.Center
+        ) {
+            CircularProgressIndicator()
+        }
+        return
     }
 
     Column(modifier = Modifier.padding(16.dp)) {
         Text("판매 물품 등록", style = MaterialTheme.typography.headlineMedium)
 
-        // Enable scrolling
         val scrollState = rememberScrollState()
         Column(
             modifier = Modifier
@@ -126,7 +150,6 @@ fun SellItemPage() {
             ) {
                 for (brandType in brandTypes) {
                     var expanded by remember { mutableStateOf(false) }
-                    val selectedItems = remember { mutableStateListOf<String>() }
 
                     Column(modifier = Modifier.padding(16.dp)) {
                         Row(verticalAlignment = Alignment.CenterVertically) {
@@ -141,11 +164,10 @@ fun SellItemPage() {
                                 for (brand in brandType.brands) {
                                     Row(verticalAlignment = Alignment.CenterVertically) {
                                         Checkbox(
-                                            checked = selectedItems.contains(brand),
+                                            checked = selectedCategories.contains(brand),
                                             onCheckedChange = { isChecked ->
-                                                if (isChecked) selectedItems.add(brand) else selectedItems.remove(
-                                                    brand
-                                                )
+                                                if (isChecked) selectedCategories.add(brand)
+                                                else selectedCategories.remove(brand)
                                             }
                                         )
                                         Text(brand)
@@ -156,12 +178,15 @@ fun SellItemPage() {
                     }
                 }
             }
+
             // 제목 입력 텍스트 필드
             OutlinedTextField(
                 value = title,
                 onValueChange = { title = it },
                 label = { Text("제목 입력") },
-                modifier = Modifier.fillMaxWidth().padding(top = 16.dp)
+                modifier = Modifier
+                    .fillMaxWidth()
+                    .padding(top = 16.dp)
             )
 
             // 내용 입력 텍스트 필드
@@ -177,8 +202,7 @@ fun SellItemPage() {
                     value = description,
                     onValueChange = { description = it },
                     modifier = Modifier.fillMaxSize(),
-
-                    )
+                )
             }
 
             // 가격 입력 텍스트 필드
@@ -186,25 +210,78 @@ fun SellItemPage() {
                 value = price,
                 onValueChange = { price = it },
                 label = { Text("가격 입력") },
-                modifier = Modifier.fillMaxWidth().padding(top = 8.dp),
+                modifier = Modifier
+                    .fillMaxWidth()
+                    .padding(top = 8.dp),
                 keyboardOptions = KeyboardOptions(keyboardType = KeyboardType.Number)
             )
+
             // 등록버튼
             Column(
-                modifier = Modifier.fillMaxSize().padding(top = 16.dp),
-                verticalArrangement = Arrangement.Center, // 수직 방향으로 가운데 정렬
-                horizontalAlignment = Alignment.CenterHorizontally // 수평 방향으로 가운데 정렬
+                modifier = Modifier
+                    .fillMaxSize()
+                    .padding(top = 16.dp),
+                verticalArrangement = Arrangement.Center,
+                horizontalAlignment = Alignment.CenterHorizontally
             ) {
                 Button(
-                    onClick = { /* 버튼 클릭 동작 */ },
-                    modifier = Modifier
-                        .size(width = 200.dp, height = 60.dp),
+                    onClick = {
+                        val currentUser = auth.currentUser
+                        if (currentUser == null) {
+                            Toast.makeText(context, "로그인이 필요합니다", Toast.LENGTH_SHORT).show()
+                            return@Button
+                        }
+                        if (imageUri == null || title.isEmpty() || price.isEmpty() || selectedCategories.isEmpty()) {
+                            Toast.makeText(context, "필수 정보를 모두 입력해주세요", Toast.LENGTH_SHORT).show()
+                            return@Button
+                        }
+
+                        isLoading = true
+
+                        // 이미지 업로드
+                        val imageRef = storage.reference.child("items/${UUID.randomUUID()}")
+                        imageRef.putFile(imageUri!!)
+                            .continueWithTask { task ->
+                                if (!task.isSuccessful) {
+                                    task.exception?.let { throw it }
+                                }
+                                imageRef.downloadUrl
+                            }
+                            .addOnSuccessListener { downloadUri ->
+                                // Firestore에 상품 정보 저장
+                                val item = Item(
+                                    sellerId = currentUser.uid,
+                                    imageUrl = downloadUri.toString(),
+                                    title = title,
+                                    subtitle = "",
+                                    category = selectedCategories.joinToString(", "),
+                                    price = price,
+                                    description = description,
+                                    createdAt = Date()
+                                )
+
+                                firestore.collection("items")
+                                    .add(item.toMap())
+                                    .addOnSuccessListener {
+                                        Toast.makeText(context, "상품이 등록되었습니다", Toast.LENGTH_SHORT).show()
+                                        isLoading = false
+                                    }
+                                    .addOnFailureListener { e ->
+                                        Toast.makeText(context, "등록 실패: ${e.message}", Toast.LENGTH_SHORT).show()
+                                        isLoading = false
+                                    }
+                            }
+                            .addOnFailureListener { e ->
+                                Toast.makeText(context, "이미지 업로드 실패: ${e.message}", Toast.LENGTH_SHORT).show()
+                                isLoading = false
+                            }
+                    },
+                    modifier = Modifier.size(width = 200.dp, height = 60.dp),
                     colors = ButtonDefaults.buttonColors(Color.Black)
                 ) {
                     Text("이펙터 등록하기", fontSize = 20.sp)
                 }
             }
-
         }
     }
 }
