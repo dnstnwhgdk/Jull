@@ -1,0 +1,29 @@
+{
+  "project_info": {
+    "project_number": "959241899836",
+    "project_id": "finalexamsmartapp",
+    "storage_bucket": "finalexamsmartapp.firebasestorage.app"
+  },
+  "client": [
+    {
+      "client_info": {
+        "mobilesdk_app_id": "1:959241899836:android:be5ff011f049e814c05839",
+        "android_client_info": {
+          "package_name": "com.example.jull"
+        }
+      },
+      "oauth_client": [],
+      "api_key": [
+        {
+          "current_key": "AIzaSyB-Ow_-9ajGFrm1e0T6sI0nXbcRTLAVPJ4"
+        }
+      ],
+      "services": {
+        "appinvite_service": {
+          "other_platform_oauth_client": []
+        }
+      }
+    }
+  ],
+  "configuration_version": "1"
+}
