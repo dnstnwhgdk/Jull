@@ -4,6 +4,7 @@ import SignUpScreen
 import android.content.Context
 import android.content.Intent
 import android.os.Bundle
+import android.util.Log
 import android.widget.Toast
 import androidx.activity.ComponentActivity
 import androidx.activity.compose.setContent
@@ -73,6 +74,10 @@ import androidx.navigation.compose.composable
 import androidx.navigation.compose.rememberNavController
 import com.example.jull.ui.theme.JullTheme
 import com.google.firebase.auth.FirebaseAuth
+import androidx.compose.material3.AlertDialog
+import androidx.compose.material3.MaterialTheme
+import com.example.jull.RecoveryType
+import com.google.firebase.database.FirebaseDatabase
 
 
 class MainActivity : ComponentActivity() {
@@ -115,42 +120,49 @@ fun LoginScreen(navController: NavController) {
     var email by remember { mutableStateOf("") }
     var password by remember { mutableStateOf("") }
     var isPasswordVisible by remember { mutableStateOf(false) }
+    var showRecoveryDialog by remember { mutableStateOf<RecoveryType?>(null) }
     val focusManager = LocalFocusManager.current
     val context = LocalContext.current
 
     Column(
         modifier = Modifier
             .fillMaxSize()
-            .padding(16.dp).pointerInput(Unit) {
-                detectTapGestures(
-                    onTap = {
-                        focusManager.clearFocus()
-                    }
-                )
+            .padding(16.dp)
+            .pointerInput(Unit) {
+                detectTapGestures(onTap = { focusManager.clearFocus() })
             },
-
         horizontalAlignment = Alignment.CenterHorizontally
     ) {
-        // 상단 로고와 타이틀
-        Column(horizontalAlignment = Alignment.CenterHorizontally) {
+        // 로고와 타이틀 부분
+        Column(
+            horizontalAlignment = Alignment.CenterHorizontally,
+            modifier = Modifier.padding(bottom = 32.dp)
+        ) {
             Spacer(modifier = Modifier.height(48.dp))
             Image(
-                painter = painterResource(id = R.drawable.eflog), // 로고 리소스
+                painter = painterResource(id = R.drawable.eflog),
                 contentDescription = "Logo",
                 modifier = Modifier.size(150.dp)
             )
 
             Text(
-                text = "USS",
+                text = "멜로디 마트",
                 fontSize = 40.sp,
                 fontWeight = FontWeight.Bold,
                 textAlign = TextAlign.Center
             )
             Text(
-                text = "Used Sound Stone",
-                fontSize = 20.sp,
+                text = "당신의 음악을 더 풍성하게",
+                fontSize = 16.sp,
                 color = Color.Gray,
                 textAlign = TextAlign.Center
+            )
+            Text(
+                text = "이펙터 거래의 새로운 기준",
+                fontSize = 14.sp,
+                color = Color.Gray,
+                textAlign = TextAlign.Center,
+                modifier = Modifier.padding(top = 4.dp)
             )
         }
 
@@ -206,11 +218,9 @@ fun LoginScreen(navController: NavController) {
                         auth.signInWithEmailAndPassword(email, password)
                             .addOnCompleteListener { task ->
                                 if (task.isSuccessful) {
-                                    // 로그인 성공: LoginActivity로 이동
                                     val intent = Intent(context, LoginActivity::class.java)
                                     context.startActivity(intent)
                                 } else {
-                                    // 로그인 실패: 오류 메시지 출력
                                     Toast.makeText(context, "로그인 실패: ${task.exception?.message}", Toast.LENGTH_SHORT).show()
                                 }
                             }
@@ -232,23 +242,189 @@ fun LoginScreen(navController: NavController) {
                 horizontalArrangement = Arrangement.SpaceBetween,
                 modifier = Modifier.fillMaxWidth()
             ) {
-                TextButton(onClick = {navController.navigate("signup")}) { Text("회원 가입") }
-                Text("|", fontSize = 14.sp, color = Color.Gray)
-                TextButton(onClick = { /* 이메일 찾기 동작 */ }) { Text("아이디 찾기") }
-                Text("|", fontSize = 14.sp, color = Color.Gray)
-                TextButton(onClick = { /* 비밀번호 찾기 동작 */ }) { Text("비밀번호 찾기") }
-            }
-
-
-            Spacer(modifier = Modifier.height(24.dp))
-
-            Row(horizontalArrangement = Arrangement.Center) {
-                TextButton(onClick = { /* 이용약관 이동 */ }) { Text("이용약관", fontSize = 12.sp) }
-                Text("|", fontSize = 12.sp, color = Color.Gray)
-                TextButton(onClick = { /* 개인정보 처리방침 이동 */ }) { Text("개인정보처리방침", fontSize = 12.sp) }
+                TextButton(onClick = { navController.navigate("signup") }) {
+                    Text("회원 가입")
+                }
+                TextButton(onClick = { showRecoveryDialog = RecoveryType.ID }) {
+                    Text("아이디 찾기")
+                }
+                TextButton(onClick = { showRecoveryDialog = RecoveryType.PASSWORD }) {
+                    Text("비밀번호 찾기")
+                }
             }
         }
     }
+
+    // 아이디/비밀번호 찾기 다이얼로그
+    showRecoveryDialog?.let { type ->
+        RecoveryDialog(
+            type = type,
+            onDismiss = { showRecoveryDialog = null },
+            onSubmit = { input ->
+                when (type) {
+                    RecoveryType.ID -> {
+                        // Firebase Realtime Database에서 전체 사용자 데이터를 가져와서 클라이언트에서 필터링
+                        val database = FirebaseDatabase.getInstance()
+                        database.reference.child("users")
+                            .get()
+                            .addOnSuccessListener { snapshot ->
+                                var userEmail: String? = null
+                                snapshot.children.forEach { childSnapshot ->
+                                    val childPhonenum = childSnapshot.child("phonenum").getValue(String::class.java)
+                                    if (childPhonenum == input) {
+                                        userEmail = childSnapshot.child("email").getValue(String::class.java)
+                                        return@forEach
+                                    }
+                                }
+
+                                if (userEmail != null) {
+                                    Toast.makeText(
+                                        context,
+                                        "찾은 아이디: $userEmail",
+                                        Toast.LENGTH_LONG
+                                    ).show()
+                                } else {
+                                    Toast.makeText(
+                                        context,
+                                        "입력하신 번호로 가입된 계정이 없습니다",
+                                        Toast.LENGTH_SHORT
+                                    ).show()
+                                }
+                            }
+                            .addOnFailureListener {
+                                Toast.makeText(
+                                    context,
+                                    "일시적인 오류가 발생했습니다. 잠시 후 다시 시도해주세요.",
+                                    Toast.LENGTH_SHORT
+                                ).show()
+                            }
+                    }
+
+                    RecoveryType.PASSWORD -> {
+                        if (input.contains("@")) {
+                            auth.sendPasswordResetEmail(input)
+                                .addOnSuccessListener {
+                                    Toast.makeText(
+                                        context,
+                                        "비밀번호 재설정 이메일을 발송했습니다",
+                                        Toast.LENGTH_LONG
+                                    ).show()
+                                }
+                                .addOnFailureListener { e ->
+                                    Toast.makeText(
+                                        context,
+                                        "등록되지 않은 이메일 주소입니다",
+                                        Toast.LENGTH_SHORT
+                                    ).show()
+                                }
+                        } else {
+                            Toast.makeText(
+                                context,
+                                "올바른 이메일 형식이 아닙니다",
+                                Toast.LENGTH_SHORT
+                            ).show()
+                        }
+                    }
+                }
+                showRecoveryDialog = null
+            }
+        )
+    }
+}
+
+@Composable
+fun RecoveryDialog(
+    type: RecoveryType,
+    onDismiss: () -> Unit,
+    onSubmit: (String) -> Unit
+) {
+    var input by remember { mutableStateOf("") }
+    var isError by remember { mutableStateOf(false) }
+
+    AlertDialog(
+        onDismissRequest = onDismiss,
+        title = {
+            Text(when (type) {
+                RecoveryType.ID -> "휴대폰 번호로 아이디 찾기"
+                RecoveryType.PASSWORD -> "비밀번호 재설정"
+            })
+        },
+        text = {
+            Column {
+                Text(when (type) {
+                    RecoveryType.ID -> "가입 시 등록한 휴대폰 번호를 입력해주세요"
+                    RecoveryType.PASSWORD -> "가입한 이메일 주소를 입력해주세요"
+                })
+                Spacer(modifier = Modifier.height(8.dp))
+                OutlinedTextField(
+                    value = input,
+                    onValueChange = {
+                        input = it
+                        isError = false
+                        if (type == RecoveryType.ID) {
+                            // 숫자만 입력되도록 필터링
+                            input = it.filter { char -> char.isDigit() }
+                            // 11자리로 제한
+                            if (input.length > 11) input = input.take(11)
+                        }
+                    },
+                    placeholder = {
+                        Text(when (type) {
+                            RecoveryType.ID -> "휴대폰 번호 입력 ('-' 제외)"
+                            RecoveryType.PASSWORD -> "이메일 주소 입력"
+                        })
+                    },
+                    modifier = Modifier.fillMaxWidth(),
+                    isError = isError,
+                    keyboardOptions = KeyboardOptions(
+                        keyboardType = when (type) {
+                            RecoveryType.ID -> KeyboardType.Number
+                            RecoveryType.PASSWORD -> KeyboardType.Email
+                        }
+                    )
+                )
+                if (isError) {
+                    Text(
+                        text = when (type) {
+                            RecoveryType.ID -> "올바른 휴대폰 번호를 입력해주세요"
+                            RecoveryType.PASSWORD -> "올바른 이메일 주소를 입력해주세요"
+                        },
+                        color = MaterialTheme.colorScheme.error,
+                        style = MaterialTheme.typography.bodySmall
+                    )
+                }
+            }
+        },
+        confirmButton = {
+            TextButton(
+                onClick = {
+                    when (type) {
+                        RecoveryType.ID -> {
+                            if (input.length == 11) {
+                                onSubmit(input)
+                            } else {
+                                isError = true
+                            }
+                        }
+                        RecoveryType.PASSWORD -> {
+                            if (input.contains("@")) {
+                                onSubmit(input)
+                            } else {
+                                isError = true
+                            }
+                        }
+                    }
+                }
+            ) {
+                Text("확인")
+            }
+        },
+        dismissButton = {
+            TextButton(onClick = onDismiss) {
+                Text("취소")
+            }
+        }
+    )
 }
 
 
