@@ -5,10 +5,13 @@ import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.PaddingValues
 import androidx.compose.foundation.layout.Row
+import androidx.compose.foundation.layout.defaultMinSize
 import androidx.compose.foundation.layout.fillMaxHeight
+import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.height
 import androidx.compose.foundation.layout.padding
+import androidx.compose.foundation.layout.wrapContentSize
 import androidx.compose.foundation.lazy.grid.GridCells
 import androidx.compose.foundation.lazy.grid.LazyVerticalGrid
 import androidx.compose.foundation.lazy.grid.items
@@ -45,7 +48,7 @@ fun ItemBord(
                 rowItems.forEach { item ->
                     Card(
                         modifier = Modifier
-                            .padding(8.dp)
+                            .padding(8.dp).wrapContentSize()
                             .clickable { onItemClick(item) }
                     ) {
                         Box(
@@ -53,10 +56,11 @@ fun ItemBord(
                                 .fillMaxWidth()
                                 .fillMaxHeight()
                         ) {
-                            Column(modifier = Modifier.padding(10.dp)) {
+                            Column(modifier = Modifier.padding(10.dp).fillMaxWidth()) {
                                 AsyncImage(
                                     model = item.imageUrl,
                                     contentDescription = "상품 이미지",
+                                    modifier = Modifier.defaultMinSize(150.dp, 230.dp)
                                 )
                                 Text(item.title, fontWeight = FontWeight.Bold)
                                 Text(item.subtitle)
