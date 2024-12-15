@@ -5,7 +5,10 @@ import android.widget.Toast
 import androidx.activity.compose.rememberLauncherForActivityResult
 import androidx.activity.result.contract.ActivityResultContracts
 import androidx.compose.foundation.Image
+import androidx.compose.foundation.background
 import androidx.compose.foundation.border
+import androidx.compose.foundation.clickable
+import androidx.compose.foundation.horizontalScroll
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
@@ -18,14 +21,20 @@ import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.layout.wrapContentSize
 import androidx.compose.foundation.rememberScrollState
+import androidx.compose.foundation.shape.CircleShape
+import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.foundation.text.BasicTextField
 import androidx.compose.foundation.text.KeyboardOptions
 import androidx.compose.foundation.verticalScroll
+import androidx.compose.material.icons.Icons
+import androidx.compose.material.icons.filled.Add
+import androidx.compose.material.icons.filled.Clear
 import androidx.compose.material3.Button
 import androidx.compose.material3.ButtonDefaults
 import androidx.compose.material3.Checkbox
 import androidx.compose.material3.CircularProgressIndicator
 import androidx.compose.material3.ExperimentalMaterial3Api
+import androidx.compose.material3.IconButton
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.OutlinedTextField
 import androidx.compose.material3.Text
@@ -55,7 +64,7 @@ import java.util.Date
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
 fun SellItemPage() {
-    var imageUri by remember { mutableStateOf<Uri?>(null) }
+    var imageUris by remember { mutableStateOf<List<Uri>>(emptyList()) }
     var title by remember { mutableStateOf("") }
     var description by remember { mutableStateOf("내용을 입력해주세요") }
     var price by remember { mutableStateOf("") }
@@ -70,33 +79,42 @@ fun SellItemPage() {
     val imagePickerLauncher = rememberLauncherForActivityResult(
         contract = ActivityResultContracts.GetContent()
     ) { uri: Uri? ->
-        imageUri = uri
+        uri?.let {
+            if (imageUris.size < 5) {
+                imageUris = imageUris + it
+            } else {
+                Toast.makeText(context, "최대 5장까지만 업로드 가능합니다", Toast.LENGTH_SHORT).show()
+            }
+        }
     }
 
     val brandTypes = listOf(
-        BrandType("국내 브랜드", listOf("나이키", "아디다스", "뉴발란스", "푸마", "컨버스")),
-        BrandType("수입 브랜드(A~L)", listOf("유니클로", "자라", "H&M", "갭", "탑텐")),
-        BrandType("수입 브랜드(M~Z)", listOf("구찌", "샤넬", "루이비통", "프라다", "에르메스")),
-        BrandType("이펙터 유형(필수)", listOf(
-            "멀티이펙터/모델러/IR로더",
-            "오버드라이브/디스토션",
-            "퍼즈/부스터",
-            "컴프레서/리미터",
-            "이퀄라이져/서스테이너",
-            "코러스/페이저/플랜저",
-            "트레몰로/바이브",
-            "로터리/링 모듈레이터",
-            "리버브/딜레이/에코",
-            "루프/샘플러",
-            "하모나이저/피치쉬프터/옥타브",
-            "노이즈리덕션/노이즈게이트",
-            "볼륨/와우",
-            "프리앰프/다이렉트박스",
-            "파워서플라이",
-            "보코더/토크박스/필터",
-            "익스프레션",
-            "컨트롤러/풋스위치/채널스위치",
-            "그외")),
+        BrandType("국내 브랜드", listOf("Altonics", "Amsterdam cream",
+            "Artec", "BIGRIG", "Gopherwood", "hushh", "Macron Audio", "Modegear",
+            "Moollon", "Musicom", "Nobles", "Ogre", "Radix", "SwitchAudio", "TKI", "TONE BOX")),
+        BrandType("수입 브랜드(A~L)", listOf("Anasounds", "BEETRONICS", "BluGuitar", "Bob Burt",
+            "Bogner", "Boss", "Catalinbread", "Chase Bliss Audio", "CKK Electronic", "Cool Music",
+            "Cornerstone", "Creation Audio Labs", "CTC", "Danelectro", "Diamond pedals", "Digitech (DOD)",
+            "Dls", "Dr.J", "DSM & Humboldt", "Dunlop", "E.W.S", "EBS", "Electro Harmonix", "ENGL", "Ernie Ball", "Eventide",
+            "Fender", "Flamma", "Fox Pedal", "FreeTheTone", "Fulltone", "GameChanger", "Greenhouse",
+            "Greer", "GURUS", "Gus.G", "HEADRUSH", "Horizon Devices", "HOTONE", "Humboldt", "Hungry Robot",
+            "Ibanez", "IK Multimedia", "ISP", "J.Rockett Audio", "Jackson Audio", "Jam Pedal", "JHS PEDALS",
+            "Joemeek", "JOYO", "Kardian", "Keeley", "Keyztone", "KHDK ELECTRONICS", "Kikutani", "Korg",
+            "KSR", "Lehle", "Line6", "Livemaster", "LPD Pedals", "Lucent", "Solar")),
+        BrandType("수입 브랜드(M~Z)", listOf("M-Vave", "Mad Professor", "Magnetic Effects",
+            "Mastro Valvola", "Matthews", "Maxon", "Mesa/Boogie", "Mission Engineering", "Mod tone",
+            "Mooer Audio", "Morley", "Mosky", "MXR", "Neural DSP", "NoahSARK", "Nosepedal", "Nux",
+            "Old Blood Noise (OBNE)", "Orange", "Origin Effects", "Paint Audio", "Pedal Pawn",
+            "Petty John", "Pigtronix", "Proco", "Providence", "Revv", "Road Rage Progear", "RockBoard",
+            "Rocktron", "Roland", "Ross", "Rowin", "Samson", "Shins Music", "Shnobel Tone", "Sinvertek",
+            "SKS AUDIO", "Soldano", "Sonicake", "Source Audio", "Strymon", "StudioDaydream", "SUPRO",
+            "T1M", "Taurus", "TC Electronic", "Tech21", "TechnTone", "Thermion", "Toms line", "Trial",
+            "True Tone (Visual Sound)", "Two Notes", "Umbrella Company", "Valeton", "Vemuram", "Victory",
+            "VITAL AUDIO", "Voodoo Lab", "Vox", "Walrus Audio", "Wampler", "Xotic", "Xvive", "Z.Vex", "Zoom")),
+        BrandType("이펙터 유형(필수)", listOf("멀티이펙터/모델러/IR로더", "오버드라이브/디스토션", "퍼즈/부스터",
+            "컴프레서/리미터", "이퀄라이져/서스테이너", "코러스/페이저/플랜저", "트레몰로/바이브", "로터리/링 모듈레이터",
+            "리버브/딜레이/에코", "루프/샘플러", "하모나이저/피치쉬프터/옥타브", "노이즈리덕션/노이즈게이트", "볼륨/와우",
+            "프리앰프/다이렉트박스", "파워서플라이", "보코더/토크박스/필터", "익스프레션", "컨트롤러/풋스위치/채널스위치", "그외")),
     )
 
     if (isLoading) {
@@ -118,26 +136,92 @@ fun SellItemPage() {
                 .fillMaxSize()
                 .verticalScroll(scrollState)
         ) {
-            // 사진 업로드
+            // 사진 업로드 영역
             Box(
                 modifier = Modifier
                     .fillMaxWidth()
-                    .height(200.dp),
-                contentAlignment = Alignment.Center
+                    .height(200.dp)
             ) {
-                if (imageUri != null) {
-                    Image(
-                        painter = rememberAsyncImagePainter(imageUri),
-                        contentDescription = "Selected Image",
-                        contentScale = ContentScale.Crop,
-                        modifier = Modifier.fillMaxSize()
-                    )
-                } else {
-                    Button(
-                        onClick = { imagePickerLauncher.launch("image/*") },
-                        colors = ButtonDefaults.buttonColors(Color.Black)
-                    ) {
-                        Text("사진 업로드", color = Color.White)
+                Row(
+                    modifier = Modifier
+                        .horizontalScroll(rememberScrollState())
+                        .padding(vertical = 8.dp),
+                    horizontalArrangement = Arrangement.spacedBy(8.dp)
+                ) {
+                    // 이미지 추가 버튼
+                    if (imageUris.size < 5) {
+                        Box(
+                            modifier = Modifier
+                                .size(180.dp)
+                                .border(
+                                    width = 2.dp,
+                                    color = Color.Gray,
+                                    shape = RoundedCornerShape(8.dp)
+                                )
+                                .clickable { imagePickerLauncher.launch("image/*") },
+                            contentAlignment = Alignment.Center
+                        ) {
+                            Column(
+                                horizontalAlignment = Alignment.CenterHorizontally,
+                                verticalArrangement = Arrangement.Center
+                            ) {
+                                Text(
+                                    "+",
+                                    fontSize = 40.sp,
+                                    color = Color.Gray,
+                                    fontWeight = FontWeight.Light
+                                )
+                                Spacer(modifier = Modifier.height(4.dp))
+                                Text(
+                                    "${imageUris.size}/5",
+                                    color = Color.Gray,
+                                    fontSize = 16.sp
+                                )
+                            }
+                        }
+                    }
+
+                    // 선택된 이미지들 표시
+                    imageUris.forEachIndexed { index, uri ->
+                        Box(
+                            modifier = Modifier
+                                .size(180.dp)
+                                .border(
+                                    width = 1.dp,
+                                    color = Color.Gray,
+                                    shape = RoundedCornerShape(8.dp)
+                                )
+                        ) {
+                            Image(
+                                painter = rememberAsyncImagePainter(uri),
+                                contentDescription = "Selected Image $index",
+                                modifier = Modifier.fillMaxSize(),
+                                contentScale = ContentScale.Crop
+                            )
+                            IconButton(
+                                onClick = {
+                                    imageUris = imageUris.filterIndexed { i, _ -> i != index }
+                                },
+                                modifier = Modifier.align(Alignment.TopEnd)
+                            ) {
+                                Box(
+                                    modifier = Modifier
+                                        .size(24.dp)
+                                        .background(
+                                            color = Color.Black.copy(alpha = 0.5f),
+                                            shape = CircleShape
+                                        ),
+                                    contentAlignment = Alignment.Center
+                                ) {
+                                    Text(
+                                        "×",
+                                        color = Color.White,
+                                        fontSize = 18.sp,
+                                        fontWeight = FontWeight.Bold
+                                    )
+                                }
+                            }
+                        }
                     }
                 }
             }
@@ -231,50 +315,60 @@ fun SellItemPage() {
                             Toast.makeText(context, "로그인이 필요합니다", Toast.LENGTH_SHORT).show()
                             return@Button
                         }
-                        if (imageUri == null || title.isEmpty() || price.isEmpty() || selectedCategories.isEmpty()) {
+                        if (imageUris.isEmpty()) {
+                            Toast.makeText(context, "최소 1장의 사진을 업로드해주세요", Toast.LENGTH_SHORT).show()
+                            return@Button
+                        }
+                        if (title.isEmpty() || price.isEmpty() || selectedCategories.isEmpty()) {
                             Toast.makeText(context, "필수 정보를 모두 입력해주세요", Toast.LENGTH_SHORT).show()
                             return@Button
                         }
 
                         isLoading = true
+                        val uploadedUrls = mutableListOf<String>()
 
-                        // 이미지 업로드
-                        val imageRef = storage.reference.child("items/${UUID.randomUUID()}")
-                        imageRef.putFile(imageUri!!)
-                            .continueWithTask { task ->
-                                if (!task.isSuccessful) {
-                                    task.exception?.let { throw it }
+                        imageUris.forEachIndexed { index, uri ->
+                            val imageRef = storage.reference.child("items/${UUID.randomUUID()}")
+                            imageRef.putFile(uri)
+                                .continueWithTask { task ->
+                                    if (!task.isSuccessful) {
+                                        task.exception?.let { throw it }
+                                    }
+                                    imageRef.downloadUrl
                                 }
-                                imageRef.downloadUrl
-                            }
-                            .addOnSuccessListener { downloadUri ->
-                                // Firestore에 상품 정보 저장
-                                val item = Item(
-                                    sellerId = currentUser.uid,
-                                    imageUrl = downloadUri.toString(),
-                                    title = title,
-                                    subtitle = "",
-                                    category = selectedCategories.joinToString(", "),
-                                    price = price,
-                                    description = description,
-                                    createdAt = Date()
-                                )
+                                .addOnSuccessListener { downloadUri ->
+                                    uploadedUrls.add(downloadUri.toString())
 
-                                firestore.collection("items")
-                                    .add(item.toMap())
-                                    .addOnSuccessListener {
-                                        Toast.makeText(context, "상품이 등록되었습니다", Toast.LENGTH_SHORT).show()
-                                        isLoading = false
+                                    // 모든 이미지가 업로드되면 Firestore에 저장
+                                    if (uploadedUrls.size == imageUris.size) {
+                                        val item = Item(
+                                            sellerId = currentUser.uid,
+                                            imageUrl = uploadedUrls.joinToString(","),
+                                            title = title,
+                                            subtitle = "",
+                                            category = selectedCategories.joinToString(", "),
+                                            price = price,
+                                            description = description,
+                                            createdAt = Date()
+                                        )
+
+                                        firestore.collection("items")
+                                            .add(item.toMap())
+                                            .addOnSuccessListener {
+                                                Toast.makeText(context, "상품이 등록되었습니다", Toast.LENGTH_SHORT).show()
+                                                isLoading = false
+                                            }
+                                            .addOnFailureListener { e ->
+                                                Toast.makeText(context, "등록 실패: ${e.message}", Toast.LENGTH_SHORT).show()
+                                                isLoading = false
+                                            }
                                     }
-                                    .addOnFailureListener { e ->
-                                        Toast.makeText(context, "등록 실패: ${e.message}", Toast.LENGTH_SHORT).show()
-                                        isLoading = false
-                                    }
-                            }
-                            .addOnFailureListener { e ->
-                                Toast.makeText(context, "이미지 업로드 실패: ${e.message}", Toast.LENGTH_SHORT).show()
-                                isLoading = false
-                            }
+                                }
+                                .addOnFailureListener { e ->
+                                    Toast.makeText(context, "이미지 업로드 실패: ${e.message}", Toast.LENGTH_SHORT).show()
+                                    isLoading = false
+                                }
+                        }
                     },
                     modifier = Modifier.size(width = 200.dp, height = 60.dp),
                     colors = ButtonDefaults.buttonColors(Color.Black)

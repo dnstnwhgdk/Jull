@@ -51,7 +51,6 @@ android {
 }
 
 dependencies {
-
     implementation(libs.androidx.core.ktx)
     implementation(libs.androidx.lifecycle.runtime.ktx)
     implementation(libs.androidx.activity.compose)
@@ -68,6 +67,10 @@ dependencies {
     implementation ("androidx.compose.material:material-icons-extended:1.0.0")
     implementation(libs.firebase.database.ktx)
     implementation(libs.firebase.database)
+    // Pager 의존성 추가
+    implementation("com.google.accompanist:accompanist-pager:0.32.0")
+    implementation("com.google.accompanist:accompanist-pager-indicators:0.32.0")
+
     testImplementation(libs.junit)
     androidTestImplementation(libs.androidx.junit)
     androidTestImplementation(libs.androidx.espresso.core)
@@ -75,6 +78,6 @@ dependencies {
     androidTestImplementation(libs.androidx.ui.test.junit4)
     debugImplementation(libs.androidx.ui.tooling)
     debugImplementation(libs.androidx.ui.test.manifest)
-    implementation( "androidx.compose.material3:material3:1.2.0") // 최신 버전으로 교체
-    implementation("androidx.navigation:navigation-compose:2.6.0") // 최신 버전으로 교체
+    implementation( "androidx.compose.material3:material3:1.2.0")
+    implementation("androidx.navigation:navigation-compose:2.6.0")
 }
