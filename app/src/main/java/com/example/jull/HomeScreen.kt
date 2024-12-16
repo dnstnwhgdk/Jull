@@ -147,6 +147,7 @@ fun Home() {
                             putExtra("brandCategory", item.brandCategory)
                             putExtra("effecterType", item.effecterType)
                             putExtra("description", item.description)
+                            putExtra("sellerId", item.sellerId) // sellerId 추가
                         }
                         context.startActivity(intent)
                     }

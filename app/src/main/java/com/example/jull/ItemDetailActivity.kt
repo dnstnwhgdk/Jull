@@ -1,6 +1,7 @@
 package com.example.jull
 
 import android.os.Bundle
+import android.widget.Toast
 import androidx.activity.ComponentActivity
 import androidx.activity.compose.setContent
 import androidx.compose.foundation.ExperimentalFoundationApi
@@ -20,10 +21,14 @@ import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.layout.ContentScale
+import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import coil.compose.AsyncImage
+import com.google.firebase.auth.FirebaseAuth
+import com.google.firebase.firestore.FirebaseFirestore
+import java.util.Date
 
 class ItemDetailActivity : ComponentActivity() {
     override fun onCreate(savedInstanceState: Bundle?) {
@@ -32,16 +37,20 @@ class ItemDetailActivity : ComponentActivity() {
         val imageUrl = intent.getStringExtra("imageUrl") ?: ""
         val title = intent.getStringExtra("title") ?: ""
         val price = intent.getStringExtra("price") ?: ""
-        val category = intent.getStringExtra("category") ?: ""
+        val brandCategory = intent.getStringExtra("brandCategory") ?: ""
+        val effecterType = intent.getStringExtra("effecterType") ?: ""
         val description = intent.getStringExtra("description") ?: ""
+        val sellerId = intent.getStringExtra("sellerId") ?: ""
 
         setContent {
             ItemDetailScreen(
                 imageUrl = imageUrl,
                 title = title,
                 price = price,
-                category = category,
+                brandCategory = brandCategory,
+                effecterType = effecterType,
                 description = description,
+                sellerId = sellerId,
                 onBackPressed = { finish() }
             )
         }
@@ -54,12 +63,16 @@ fun ItemDetailScreen(
     imageUrl: String,
     title: String,
     price: String,
-    category: String,
+    brandCategory: String,
+    effecterType: String,
     description: String,
+    sellerId: String,
     onBackPressed: () -> Unit
 ) {
     val imageUrls = remember(imageUrl) { imageUrl.split(",") }
     val pagerState = rememberPagerState { imageUrls.size }
+    val currentUserId = FirebaseAuth.getInstance().currentUser?.uid
+    val context = LocalContext.current
 
     Scaffold(
         topBar = {
@@ -136,8 +149,16 @@ fun ItemDetailScreen(
                     .fillMaxWidth()
                     .padding(16.dp)
             ) {
+                // 브랜드 카테고리 표시
                 Text(
-                    text = category,
+                    text = brandCategory,
+                    fontSize = 14.sp,
+                    color = Color.Gray
+                )
+
+                // 이펙터 유형 표시
+                Text(
+                    text = effecterType,
                     fontSize = 14.sp,
                     color = Color.Gray
                 )
@@ -172,28 +193,48 @@ fun ItemDetailScreen(
 
                 Spacer(modifier = Modifier.height(24.dp))
 
-                Row(
-                    modifier = Modifier.fillMaxWidth(),
-                    horizontalArrangement = Arrangement.SpaceBetween
-                ) {
+                // 버튼 영역
+                if (currentUserId == sellerId) {
+                    // 판매자가 자신의 상품을 볼 때
                     Button(
-                        onClick = { /* 채팅하기 기능 */ },
-                        modifier = Modifier.weight(1f),
+                        onClick = {
+                            // 끌어올리기 기능 구현
+                            val firestore = FirebaseFirestore.getInstance()
+                            firestore.collection("items")
+                                .whereEqualTo("sellerId", sellerId)
+                                .whereEqualTo("title", title)
+                                .get()
+                                .addOnSuccessListener { documents ->
+                                    for (document in documents) {
+                                        document.reference.update("createdAt", Date())
+                                            .addOnSuccessListener {
+                                                Toast.makeText(context, "상품이 끌어올려졌습니다", Toast.LENGTH_SHORT).show()
+                                            }
+                                            .addOnFailureListener {
+                                                Toast.makeText(context, "끌어올리기 실패", Toast.LENGTH_SHORT).show()
+                                            }
+                                    }
+                                }
+                        },
+                        modifier = Modifier
+                            .fillMaxWidth()
+                            .padding(horizontal = 16.dp),
                         colors = ButtonDefaults.buttonColors(containerColor = Color.Black),
                         shape = RoundedCornerShape(8.dp)
                     ) {
-                        Text("채팅하기")
+                        Text("물건 끌어올리기")
                     }
-
-                    Spacer(modifier = Modifier.width(16.dp))
-
+                } else {
+                    // 다른 사용자가 상품을 볼 때
                     Button(
-                        onClick = { /* 구매하기 기능 */ },
-                        modifier = Modifier.weight(1f),
+                        onClick = { /* 채팅 기능 구현 예정 */ },
+                        modifier = Modifier
+                            .fillMaxWidth()
+                            .padding(horizontal = 16.dp),
                         colors = ButtonDefaults.buttonColors(containerColor = Color.Black),
                         shape = RoundedCornerShape(8.dp)
                     ) {
-                        Text("구매하기")
+                        Text("채팅")
                     }
                 }
             }
