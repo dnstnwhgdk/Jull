@@ -101,6 +101,11 @@ class MainActivity : ComponentActivity() {
     }
 }
 
+fun add(a: Int, b: Int): Int {
+    return a + b
+}
+
+
 
 @Composable
 fun Greeting(modifier: Modifier = Modifier) {
