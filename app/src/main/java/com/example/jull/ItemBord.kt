@@ -1,16 +1,19 @@
 package com.example.jull
 
+import android.widget.Toast
 import androidx.compose.foundation.clickable
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.PaddingValues
 import androidx.compose.foundation.layout.Row
+import androidx.compose.foundation.layout.Spacer
 import androidx.compose.foundation.layout.defaultMinSize
 import androidx.compose.foundation.layout.fillMaxHeight
 import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.fillMaxWidth
-import androidx.compose.foundation.layout.height
 import androidx.compose.foundation.layout.padding
+import androidx.compose.foundation.layout.size
+import androidx.compose.foundation.layout.width
 import androidx.compose.foundation.layout.wrapContentSize
 import androidx.compose.foundation.lazy.grid.GridCells
 import androidx.compose.foundation.lazy.grid.LazyVerticalGrid
@@ -23,22 +26,32 @@ import androidx.compose.material3.Icon
 import androidx.compose.material3.IconButton
 import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
+import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
 import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
+import androidx.compose.ui.graphics.Color
+import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.text.font.FontWeight
-import androidx.compose.ui.tooling.preview.Preview
 import androidx.compose.ui.unit.dp
+import androidx.compose.ui.unit.sp
 import coil.compose.AsyncImage
+import com.google.firebase.auth.FirebaseAuth
+import com.google.firebase.firestore.FirebaseFirestore
+import java.util.Date
 
 @Composable
 fun ItemBord(
     items: List<Item>,
     onItemClick: (Item) -> Unit = {}
 ) {
+    val currentUserId = FirebaseAuth.getInstance().currentUser?.uid
+    val context = LocalContext.current
+    val firestore = FirebaseFirestore.getInstance()
+
     LazyVerticalGrid(
         columns = GridCells.Fixed(2),
         contentPadding = PaddingValues(4.dp)
@@ -46,9 +59,34 @@ fun ItemBord(
         items(items.chunked(1)) { rowItems ->
             Row {
                 rowItems.forEach { item ->
+                    var isFavorite by remember { mutableStateOf(false) }
+                    var favoriteCount by remember { mutableStateOf(0) }
+
+                    // 찜 상태와 개수 확인
+                    LaunchedEffect(item.id, currentUserId) {
+                        if (currentUserId != null) {
+                            // 내가 찜한 상태 확인
+                            firestore.collection("favorites")
+                                .document("${currentUserId}_${item.id}")
+                                .get()
+                                .addOnSuccessListener { document ->
+                                    isFavorite = document.exists()
+                                }
+                        }
+
+                        // 전체 찜 개수 확인
+                        firestore.collection("favorites")
+                            .whereEqualTo("itemId", item.id)
+                            .get()
+                            .addOnSuccessListener { documents ->
+                                favoriteCount = documents.size()
+                            }
+                    }
+
                     Card(
                         modifier = Modifier
-                            .padding(8.dp).wrapContentSize()
+                            .padding(8.dp)
+                            .wrapContentSize()
                             .clickable { onItemClick(item) }
                     ) {
                         Box(
@@ -56,31 +94,75 @@ fun ItemBord(
                                 .fillMaxWidth()
                                 .fillMaxHeight()
                         ) {
-                            Column(modifier = Modifier.padding(10.dp).fillMaxWidth()) {
+                            Column(modifier = Modifier
+                                .padding(10.dp)
+                                .fillMaxWidth()
+                            ) {
                                 AsyncImage(
-                                    model = item.imageUrl,
+                                    model = item.imageUrl.split(",").firstOrNull(),
                                     contentDescription = "상품 이미지",
                                     modifier = Modifier.defaultMinSize(150.dp, 230.dp)
                                 )
                                 Text(item.title, fontWeight = FontWeight.Bold)
-                                Text(item.subtitle)
                                 Text(item.brandCategory)
                                 Text(item.effecterType)
                                 Text(item.price, fontWeight = FontWeight.Bold)
                             }
-                            // 하트 아이콘 (오른쪽 상단)
-                            var isFavorite by remember { mutableStateOf(false) }
-                            IconButton(
-                                onClick = { isFavorite = !isFavorite },
+
+                            Row(
                                 modifier = Modifier
                                     .align(Alignment.TopEnd)
-                                    .padding(4.dp)
+                                    .padding(8.dp),
+                                verticalAlignment = Alignment.CenterVertically
                             ) {
-                                Icon(
-                                    imageVector = if (isFavorite) Icons.Filled.Favorite else Icons.Outlined.FavoriteBorder,
-                                    contentDescription = if (isFavorite) "Favorite" else "Not Favorite",
-                                    tint = if (isFavorite) androidx.compose.ui.graphics.Color.Red else androidx.compose.ui.graphics.Color.Gray
+                                Text(
+                                    text = favoriteCount.toString(),
+                                    color = Color.Gray,
+                                    fontSize = 14.sp,
+                                    modifier = Modifier.padding(end = 2.dp)
                                 )
+
+                                IconButton(
+                                    onClick = {
+                                        if (currentUserId != null) {
+                                            val favoriteRef = firestore.collection("favorites")
+                                                .document("${currentUserId}_${item.id}")
+
+                                            if (isFavorite) {
+                                                // 찜 해제
+                                                favoriteRef.delete()
+                                                    .addOnSuccessListener {
+                                                        isFavorite = false
+                                                        favoriteCount--
+                                                        Toast.makeText(context, "찜 목록에서 제거되었습니다", Toast.LENGTH_SHORT).show()
+                                                    }
+                                            } else {
+                                                // 찜하기
+                                                val favorite = hashMapOf(
+                                                    "userId" to currentUserId,
+                                                    "itemId" to item.id,
+                                                    "createdAt" to Date()
+                                                )
+                                                favoriteRef.set(favorite)
+                                                    .addOnSuccessListener {
+                                                        isFavorite = true
+                                                        favoriteCount++
+                                                        Toast.makeText(context, "찜 목록에 추가되었습니다", Toast.LENGTH_SHORT).show()
+                                                    }
+                                            }
+                                        } else {
+                                            Toast.makeText(context, "로그인이 필요합니다", Toast.LENGTH_SHORT).show()
+                                        }
+                                    },
+                                    modifier = Modifier.size(24.dp)
+                                ) {
+                                    Icon(
+                                        imageVector = if (isFavorite) Icons.Filled.Favorite else Icons.Outlined.FavoriteBorder,
+                                        contentDescription = if (isFavorite) "Favorite" else "Not Favorite",
+                                        tint = if (isFavorite) Color.Red else Color.Gray,
+                                        modifier = Modifier.size(20.dp)
+                                    )
+                                }
                             }
                         }
                     }
@@ -88,21 +170,4 @@ fun ItemBord(
             }
         }
     }
-}
-
-@Preview
-@Composable
-fun ItemBordPreview() {
-    val items = listOf(
-        Item("https://img.schoolmusic.co.kr/prod_picture/22/13/650_23171.jpg", "상품1", "부제목1", "카테고리1", "10,000원"),
-        Item("https://example.com/image2.jpg", "상품2", "부제목2", "카테고리2", "20,000원"),
-        Item("https://example.com/image2.jpg", "상품3", "부제목2", "카테고리2", "20,000원"),
-        Item("https://example.com/image2.jpg", "상품4", "부제목2", "카테고리2", "20,000원"),
-        Item("https://example.com/image2.jpg", "상품5", "부제목2", "카테고리2", "20,000원"),
-        Item("https://example.com/image2.jpg", "상품6", "부제목2", "카테고리2", "20,000원"),
-        Item("https://example.com/image2.jpg", "상품7", "부제목2", "카테고리2", "20,000원"),
-        Item("https://example.com/image2.jpg", "상품8", "부제목2", "카테고리2", "20,000원"),
-    )
-
-    ItemBord(items = items)
 }

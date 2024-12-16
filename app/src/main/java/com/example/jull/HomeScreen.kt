@@ -24,6 +24,22 @@ fun Home() {
     var items by remember { mutableStateOf<List<Item>>(emptyList()) }
     var isLoading by remember { mutableStateOf(true) }
     var errorMessage by remember { mutableStateOf<String?>(null) }
+    var itemFavoriteCounts by remember { mutableStateOf<Map<String, Int>>(emptyMap()) }
+
+    // 찜 개수를 실시간으로 업데이트하는 리스너
+    LaunchedEffect(Unit) {
+        val firestore = FirebaseFirestore.getInstance()
+        firestore.collection("favorites")
+            .addSnapshotListener { snapshot, e ->
+                if (snapshot != null) {
+                    // 각 아이템별 찜 개수를 계산
+                    val counts = snapshot.documents
+                        .groupBy { it.getString("itemId") ?: "" }
+                        .mapValues { it.value.size }
+                    itemFavoriteCounts = counts
+                }
+            }
+    }
 
     // Firestore에서 데이터 로드
     LaunchedEffect(selectedButtonIndex) {
@@ -51,7 +67,9 @@ fun Home() {
 
                     // 선택된 카테고리에 따라 필터링
                     val filteredItems = when (selectedButtonIndex) {
-                        0 -> loadedItems // 인기상품
+                        0 -> loadedItems.sortedByDescending { item ->
+                            itemFavoriteCounts[item.id] ?: 0  // 찜 개수로 정렬
+                        }
                         1 -> loadedItems // 최신상품 (이미 createdAt으로 정렬됨)
                         2 -> loadedItems.filter { it.brandCategory.contains("빈티지") }
                         3 -> loadedItems.sortedBy { it.price.replace("[^0-9]".toRegex(), "").toIntOrNull() ?: 0 }
@@ -147,7 +165,8 @@ fun Home() {
                             putExtra("brandCategory", item.brandCategory)
                             putExtra("effecterType", item.effecterType)
                             putExtra("description", item.description)
-                            putExtra("sellerId", item.sellerId) // sellerId 추가
+                            putExtra("sellerId", item.sellerId)
+                            putExtra("id", item.id)
                         }
                         context.startActivity(intent)
                     }

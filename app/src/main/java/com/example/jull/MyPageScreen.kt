@@ -1,5 +1,6 @@
 package com.example.jull
 
+import android.content.Intent
 import android.util.Log
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.padding
@@ -16,14 +17,22 @@ import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
 import androidx.compose.runtime.setValue
 import androidx.compose.ui.Modifier
-import androidx.compose.ui.tooling.preview.Preview
 import androidx.compose.ui.unit.dp
 import com.google.firebase.auth.FirebaseAuth
 import com.google.firebase.database.DataSnapshot
 import com.google.firebase.database.DatabaseError
 import com.google.firebase.database.FirebaseDatabase
 import com.google.firebase.database.ValueEventListener
-
+import androidx.compose.runtime.mutableStateListOf
+import androidx.compose.foundation.layout.*
+import androidx.compose.material3.CircularProgressIndicator
+import androidx.compose.ui.Alignment
+import androidx.compose.ui.platform.LocalContext
+import com.google.firebase.firestore.FirebaseFirestore
+import com.google.firebase.firestore.Query
+import androidx.compose.foundation.layout.Box
+import androidx.compose.foundation.layout.fillMaxSize
+import com.google.firebase.firestore.FieldPath
 
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
@@ -51,7 +60,6 @@ fun My() {
                         val phoneNumber = snapshot.child("phonenum").getValue(String::class.java) ?: "정보 없음"
                         val email = snapshot.child("email").getValue(String::class.java) ?: "정보 없음"
 
-                        // 가입년도 정보 가져오기
                         val jyear = snapshot.child("date").child("year").getValue(Int::class.java)?.toString() ?: "정보 없음"
                         val jmonth = snapshot.child("date").child("monthValue").getValue(Int::class.java)?.toString() ?: "정보 없음"
                         val jday = snapshot.child("date").child("dayOfMonth").getValue(Int::class.java)?.toString() ?: "정보 없음"
@@ -80,24 +88,20 @@ fun My() {
                 UserInfo("이름", "로그인 필요"),
                 UserInfo("가입년도", "로그인 필요"),
                 UserInfo("전화번호", "로그인 필요"),
-                UserInfo("이메일", "로그인 필요"),
+                UserInfo("이메일", "로그인 필요")
             )
         }
     }
 
-    // Scaffold UI
     Scaffold(
         topBar = {
             TopAppBar(
-                title = { Text("마이페이지") },
+                title = { Text("마이페이지") }
             )
         }
     ) { paddingValues ->
         Column(modifier = Modifier.padding(paddingValues)) {
-            // Tab Navigation
-            TabRow(
-                selectedTabIndex = selectedTabIndex,
-            ) {
+            TabRow(selectedTabIndex = selectedTabIndex) {
                 tabs.forEachIndexed { index, title ->
                     Tab(
                         selected = selectedTabIndex == index,
@@ -107,48 +111,170 @@ fun My() {
                 }
             }
 
-            // Content based on selected tab
-            when (selectedTabIndex) {
-                0 -> ProfileScreen(userInfoList)
-                1 -> MyItem()
-                2 -> Wishlist()
-                3 -> Text("알림/블라인드 화면", modifier = Modifier.padding(16.dp))
+            Box(modifier = Modifier.fillMaxSize()) {
+                when (selectedTabIndex) {
+                    0 -> ProfileScreen(userInfoList)
+                    1 -> MyItem()
+                    2 -> Wishlist()
+                    3 -> Text("알림/블라인드 화면", modifier = Modifier.padding(16.dp))
+                }
             }
         }
     }
 }
-@Composable
-fun MyItem(){
-    var searchText by remember { mutableStateOf("") }
-    var selectedButtonIndex by remember { mutableStateOf(0) }
-    val items = listOf(
-        Item("https://img.schoolmusic.co.kr/prod_picture/22/13/650_23171.jpg", "상품1", "부제목1", "카테고리1", "10,000원"),
-        Item("https://img.schoolmusic.co.kr/prod_picture/22/13/650_23171.jpg", "상품2", "부제목2", "카테고리2", "20,000원"),
-        Item("https://img.schoolmusic.co.kr/prod_picture/22/13/650_23171.jpg", "상품3", "부제목2", "카테고리2", "20,000원"),
-        Item("https://img.schoolmusic.co.kr/prod_picture/22/13/650_23171.jpg", "상품4", "부제목2", "카테고리2", "20,000원"),
-        Item("https://img.schoolmusic.co.kr/prod_picture/22/13/650_23171.jpg", "상품5", "부제목2", "카테고리2", "20,000원"),
-        Item("https://img.schoolmusic.co.kr/prod_picture/22/13/650_23171.jpg", "상품6", "부제목2", "카테고리2", "20,000원"),
-        Item("https://img.schoolmusic.co.kr/prod_picture/22/13/650_23171.jpg", "상품7", "부제목2", "카테고리2", "20,000원"),
-        Item("https://img.schoolmusic.co.kr/prod_picture/22/13/650_23171.jpg", "상품8", "부제목2", "카테고리2", "20,000원"),
-    )
-    ItemBord(items)
-}
-
 
 @Composable
-fun Wishlist(){
-    var searchText by remember { mutableStateOf("") }
-    var selectedButtonIndex by remember { mutableStateOf(0) }
-    val items = listOf(
-        Item("https://img.schoolmusic.co.kr/prod_picture/22/13/650_23171.jpg", "상품1", "부제목1", "카테고리1", "10,000원"),
-        Item("https://img.schoolmusic.co.kr/prod_picture/22/13/650_23171.jpg", "상품2", "부제목2", "카테고리2", "20,000원"),
-        Item("https://img.schoolmusic.co.kr/prod_picture/22/13/650_23171.jpg", "상품3", "부제목2", "카테고리2", "20,000원"),
-        Item("https://img.schoolmusic.co.kr/prod_picture/22/13/650_23171.jpg", "상품4", "부제목2", "카테고리2", "20,000원"),
-        Item("https://img.schoolmusic.co.kr/prod_picture/22/13/650_23171.jpg", "상품5", "부제목2", "카테고리2", "20,000원"),
-        Item("https://img.schoolmusic.co.kr/prod_picture/22/13/650_23171.jpg", "상품6", "부제목2", "카테고리2", "20,000원"),
-        Item("https://img.schoolmusic.co.kr/prod_picture/22/13/650_23171.jpg", "상품7", "부제목2", "카테고리2", "20,000원"),
-        Item("https://img.schoolmusic.co.kr/prod_picture/22/13/650_23171.jpg", "상품8", "부제목2", "카테고리2", "20,000원"),
-    )
-    ItemBord(items)
+fun MyItem() {
+    var items by remember { mutableStateOf<List<Item>>(emptyList()) }
+    var isLoading by remember { mutableStateOf(true) }
+    val currentUserId = FirebaseAuth.getInstance().currentUser?.uid
+    val context = LocalContext.current
+
+    LaunchedEffect(Unit) {
+        if (currentUserId != null) {
+            val firestore = FirebaseFirestore.getInstance()
+            firestore.collection("items")
+                .whereEqualTo("sellerId", currentUserId)
+                .orderBy("createdAt", Query.Direction.DESCENDING)
+                .addSnapshotListener { snapshot, e ->
+                    if (e != null) {
+                        isLoading = false
+                        return@addSnapshotListener
+                    }
+
+                    if (snapshot != null) {
+                        items = snapshot.documents.mapNotNull { doc ->
+                            try {
+                                Item.fromMap(doc.id, doc.data ?: emptyMap())
+                            } catch (e: Exception) {
+                                null
+                            }
+                        }
+                    }
+                    isLoading = false
+                }
+        } else {
+            isLoading = false
+        }
+    }
+
+    Box(modifier = Modifier.fillMaxSize()) {
+        when {
+            isLoading -> {
+                CircularProgressIndicator(
+                    modifier = Modifier.align(Alignment.Center)
+                )
+            }
+            items.isEmpty() -> {
+                Text(
+                    "등록한 상품이 없습니다",
+                    modifier = Modifier.align(Alignment.Center)
+                )
+            }
+            else -> {
+                ItemBord(
+                    items = items,
+                    onItemClick = { item ->
+                        val intent = Intent(context, ItemDetailActivity::class.java).apply {
+                            putExtra("imageUrl", item.imageUrl)
+                            putExtra("title", item.title)
+                            putExtra("price", item.price)
+                            putExtra("brandCategory", item.brandCategory)
+                            putExtra("effecterType", item.effecterType)
+                            putExtra("description", item.description)
+                            putExtra("sellerId", item.sellerId)
+                            putExtra("id", item.id) // document ID 추가
+                        }
+                        context.startActivity(intent)
+                    }
+                )
+            }
+        }
+    }
 }
 
+@Composable
+fun Wishlist() {
+    var items by remember { mutableStateOf<List<Item>>(emptyList()) }
+    var isLoading by remember { mutableStateOf(true) }
+    val currentUserId = FirebaseAuth.getInstance().currentUser?.uid
+    val context = LocalContext.current
+
+    LaunchedEffect(Unit) {
+        if (currentUserId != null) {
+            val firestore = FirebaseFirestore.getInstance()
+
+            // 사용자의 찜 목록 가져오기
+            firestore.collection("favorites")
+                .whereEqualTo("userId", currentUserId)
+                .addSnapshotListener { snapshot, e ->
+                    if (e != null) {
+                        isLoading = false
+                        return@addSnapshotListener
+                    }
+
+                    if (snapshot != null) {
+                        // 찜한 상품들의 ID 목록
+                        val itemIds = snapshot.documents.mapNotNull { it.getString("itemId") }
+
+                        if (itemIds.isEmpty()) {
+                            items = emptyList()
+                            isLoading = false
+                            return@addSnapshotListener
+                        }
+
+                        // 찜한 상품들의 정보 가져오기
+                        firestore.collection("items")
+                            .whereIn(FieldPath.documentId(), itemIds)
+                            .get()
+                            .addOnSuccessListener { itemsSnapshot ->
+                                items = itemsSnapshot.documents.mapNotNull { doc ->
+                                    try {
+                                        Item.fromMap(doc.id, doc.data ?: emptyMap())
+                                    } catch (e: Exception) {
+                                        null
+                                    }
+                                }
+                                isLoading = false
+                            }
+                    }
+                }
+        } else {
+            isLoading = false
+        }
+    }
+
+    Box(modifier = Modifier.fillMaxSize()) {
+        when {
+            isLoading -> {
+                CircularProgressIndicator(
+                    modifier = Modifier.align(Alignment.Center)
+                )
+            }
+            items.isEmpty() -> {
+                Text(
+                    "찜한 상품이 없습니다",
+                    modifier = Modifier.align(Alignment.Center)
+                )
+            }
+            else -> {
+                ItemBord(
+                    items = items,
+                    onItemClick = { item ->
+                        val intent = Intent(context, ItemDetailActivity::class.java).apply {
+                            putExtra("imageUrl", item.imageUrl)
+                            putExtra("title", item.title)
+                            putExtra("price", item.price)
+                            putExtra("brandCategory", item.brandCategory)
+                            putExtra("effecterType", item.effecterType)
+                            putExtra("description", item.description)
+                            putExtra("sellerId", item.sellerId)
+                            putExtra("id", item.id)
+                        }
+                        context.startActivity(intent)
+                    }
+                )
+            }
+        }
+    }
+}
