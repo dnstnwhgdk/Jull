@@ -64,7 +64,8 @@ fun ItemBord(
                                 )
                                 Text(item.title, fontWeight = FontWeight.Bold)
                                 Text(item.subtitle)
-                                Text(item.category)
+                                Text(item.brandCategory)
+                                Text(item.effecterType)
                                 Text(item.price, fontWeight = FontWeight.Bold)
                             }
                             // 하트 아이콘 (오른쪽 상단)

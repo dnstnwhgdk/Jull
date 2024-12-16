@@ -341,12 +341,24 @@ fun SellItemPage() {
 
                                     // 모든 이미지가 업로드되면 Firestore에 저장
                                     if (uploadedUrls.size == imageUris.size) {
+                                        // 브랜드 카테고리와 이펙터 유형을 분리하여 저장
+                                        val brandCategory = selectedCategories.firstOrNull { brand ->
+                                            brandTypes[0].brands.contains(brand) ||
+                                                    brandTypes[1].brands.contains(brand) ||
+                                                    brandTypes[2].brands.contains(brand)
+                                        } ?: ""
+
+                                        val effecterType = selectedCategories.firstOrNull { type ->
+                                            brandTypes[3].brands.contains(type)
+                                        } ?: ""
+
                                         val item = Item(
                                             sellerId = currentUser.uid,
                                             imageUrl = uploadedUrls.joinToString(","),
                                             title = title,
                                             subtitle = "",
-                                            category = selectedCategories.joinToString(", "),
+                                            brandCategory = brandCategory,
+                                            effecterType = effecterType,
                                             price = price,
                                             description = description,
                                             createdAt = Date()

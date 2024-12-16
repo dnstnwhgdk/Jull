@@ -53,7 +53,7 @@ fun Home() {
                     val filteredItems = when (selectedButtonIndex) {
                         0 -> loadedItems // 인기상품
                         1 -> loadedItems // 최신상품 (이미 createdAt으로 정렬됨)
-                        2 -> loadedItems.filter { it.category.contains("빈티지") }
+                        2 -> loadedItems.filter { it.brandCategory.contains("빈티지") }
                         3 -> loadedItems.sortedBy { it.price.replace("[^0-9]".toRegex(), "").toIntOrNull() ?: 0 }
                         4 -> loadedItems.sortedByDescending { it.price.replace("[^0-9]".toRegex(), "").toIntOrNull() ?: 0 }
                         5 -> loadedItems // 베스트상품
@@ -136,14 +136,16 @@ fun Home() {
                     items = items.filter { item ->
                         if (searchText.isEmpty()) true
                         else (item.title.contains(searchText, ignoreCase = true) ||
-                                item.category.contains(searchText, ignoreCase = true))
+                                item.brandCategory.contains(searchText, ignoreCase = true) ||
+                                item.effecterType.contains(searchText, ignoreCase = true))
                     },
                     onItemClick = { item ->
                         val intent = Intent(context, ItemDetailActivity::class.java).apply {
                             putExtra("imageUrl", item.imageUrl)
                             putExtra("title", item.title)
                             putExtra("price", item.price)
-                            putExtra("category", item.category)
+                            putExtra("brandCategory", item.brandCategory)
+                            putExtra("effecterType", item.effecterType)
                             putExtra("description", item.description)
                         }
                         context.startActivity(intent)
