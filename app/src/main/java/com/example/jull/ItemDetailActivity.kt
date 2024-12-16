@@ -41,6 +41,8 @@ class ItemDetailActivity : ComponentActivity() {
         val effecterType = intent.getStringExtra("effecterType") ?: ""
         val description = intent.getStringExtra("description") ?: ""
         val sellerId = intent.getStringExtra("sellerId") ?: ""
+        val itemId = intent.getStringExtra("itemId") ?: ""
+        val createdAt = intent.getStringExtra("createdAt") ?: ""
 
         setContent {
             ItemDetailScreen(
@@ -51,7 +53,8 @@ class ItemDetailActivity : ComponentActivity() {
                 effecterType = effecterType,
                 description = description,
                 sellerId = sellerId,
-                onBackPressed = { finish() }
+                onBackPressed = { finish() },
+                viewModel = ItemDetailViewModel(),
             )
         }
     }
@@ -67,7 +70,8 @@ fun ItemDetailScreen(
     effecterType: String,
     description: String,
     sellerId: String,
-    onBackPressed: () -> Unit
+    onBackPressed: () -> Unit,
+    viewModel: ItemDetailViewModel = androidx.lifecycle.viewmodel.compose.viewModel(),
 ) {
     val imageUrls = remember(imageUrl) { imageUrl.split(",") }
     val pagerState = rememberPagerState { imageUrls.size }
@@ -227,7 +231,21 @@ fun ItemDetailScreen(
                 } else {
                     // 다른 사용자가 상품을 볼 때
                     Button(
-                        onClick = { /* 채팅 기능 구현 예정 */ },
+                        onClick = {
+                            viewModel.findOrCreateChatRoom(
+                                itemId = title, // itemId가 필요하므로 title 대체 가능
+                                sellerId = sellerId,
+                                buyerId = currentUserId ?:"",
+                                onChatRoomFound = { chatRoomId ->
+                                    Toast.makeText(context, "채팅방 이동: $chatRoomId", Toast.LENGTH_SHORT).show()
+                                    // 채팅 화면으로 이동
+                                },
+                                onError = { exception ->
+                                    Toast.makeText(context, "채팅방 생성 오류: ${exception.message}", Toast.LENGTH_SHORT).show()
+                                }
+                            )
+
+                        },
                         modifier = Modifier
                             .fillMaxWidth()
                             .padding(horizontal = 16.dp),
