@@ -131,7 +131,7 @@ fun ChatRoomScreen(chatName: String) {
                     .padding(padding)
             ) {
                 Text(
-                    text = "$chatName 님과의 sadaasd.",
+                    text = "$chatName 님과의 채팅입니다.",
                     color = Color.Black,
                     fontSize = 18.sp,
                     modifier = Modifier.padding(16.dp)
