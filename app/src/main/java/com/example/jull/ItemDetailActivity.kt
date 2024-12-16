@@ -1,5 +1,6 @@
 package com.example.jull
 
+import android.content.Intent
 import android.os.Bundle
 import android.widget.Toast
 import androidx.activity.ComponentActivity
@@ -25,6 +26,9 @@ import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
+import androidx.navigation.compose.NavHost
+import androidx.navigation.compose.composable
+import androidx.navigation.compose.rememberNavController
 import coil.compose.AsyncImage
 import com.google.firebase.auth.FirebaseAuth
 import com.google.firebase.firestore.FirebaseFirestore
@@ -45,6 +49,7 @@ class ItemDetailActivity : ComponentActivity() {
         val createdAt = intent.getStringExtra("createdAt") ?: ""
 
         setContent {
+            AppNavigation()
             ItemDetailScreen(
                 imageUrl = imageUrl,
                 title = title,
@@ -59,6 +64,30 @@ class ItemDetailActivity : ComponentActivity() {
         }
     }
 }
+@Composable
+fun AppNavigation() {
+    val navController = rememberNavController()
+
+    NavHost(navController, startDestination = "itemDetail") {
+        composable("itemDetail") { backStackEntry ->
+            ItemDetailScreen(
+                imageUrl = "",
+                title = "",
+                price = "",
+                brandCategory = "",
+                effecterType = "",
+                description = "",
+                sellerId = "sellerId1",
+                onBackPressed = { navController.popBackStack() }
+            )
+        }
+        composable("chat/{chatRoomId}") { backStackEntry ->
+            val chatRoomId = backStackEntry.arguments?.getString("chatRoomId") ?: ""
+            ChatScreen(chatRoomId)
+        }
+    }
+}
+
 
 @OptIn(ExperimentalFoundationApi::class, ExperimentalMaterial3Api::class)
 @Composable
@@ -238,7 +267,7 @@ fun ItemDetailScreen(
                                 buyerId = currentUserId ?:"",
                                 onChatRoomFound = { chatRoomId ->
                                     Toast.makeText(context, "채팅방 이동: $chatRoomId", Toast.LENGTH_SHORT).show()
-                                    // 채팅 화면으로 이동
+                                    //navController.navigate("chat/$chatRoomId")
                                 },
                                 onError = { exception ->
                                     Toast.makeText(context, "채팅방 생성 오류: ${exception.message}", Toast.LENGTH_SHORT).show()
