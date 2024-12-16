@@ -1,5 +1,6 @@
 package com.example.jull
 
+import ChatRoomsScreen
 import android.content.Intent
 import android.net.Uri
 import android.os.Bundle
@@ -124,8 +125,15 @@ fun MainNavigatorScreen() {
             composable("home") { Home() }
             composable("category") { Category() }
             composable("sell") { SellItemPage() }
-            composable("message") { Chat() }
+            composable("message") { ChatRoomsScreen(
+                onChatRoomClick = { chatRoomId ->
+                    navController.navigate("chat/$chatRoomId") // 채팅목록 으로 이동
+                }
+            ) }
             composable("my") { My() }
+            composable("chat/{chatRoomId}") {backStackEntry ->
+                val chatRoomId = backStackEntry.arguments?.getString("chatRoomId") ?: ""
+                ChatScreen(chatRoomId)}
         }
     }
 }

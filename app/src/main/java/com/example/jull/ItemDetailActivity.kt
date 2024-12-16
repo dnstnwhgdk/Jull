@@ -49,7 +49,17 @@ class ItemDetailActivity : ComponentActivity() {
         val createdAt = intent.getStringExtra("createdAt") ?: ""
 
         setContent {
-            AppNavigation()
+            CppNavigation(imageUrl, title, price, brandCategory, effecterType, description, sellerId)
+        }
+    }
+}
+@Composable
+fun CppNavigation(imageUrl: String, title: String, price: String, brandCategory: String, effecterType: String, description: String, sellerId: String,) {
+    val navController = rememberNavController()
+
+    NavHost(navController = navController, startDestination = "itemDetail") {
+        // 상품 상세 화면 라우트
+        composable("itemDetail") {
             ItemDetailScreen(
                 imageUrl = imageUrl,
                 title = title,
@@ -58,37 +68,20 @@ class ItemDetailActivity : ComponentActivity() {
                 effecterType = effecterType,
                 description = description,
                 sellerId = sellerId,
-                onBackPressed = { finish() },
-                viewModel = ItemDetailViewModel(),
-            )
+                onBackPressed = { navController.popBackStack() },
+                onChatNavigate = { chatRoomId ->
+                    navController.navigate("chat/$chatRoomId")
+                },
+                )
         }
-    }
-}
-@Composable
-fun AppNavigation() {
-    val navController = rememberNavController()
 
-    NavHost(navController, startDestination = "itemDetail") {
-        composable("itemDetail") { backStackEntry ->
-            ItemDetailScreen(
-                imageUrl = "",
-                title = "",
-                price = "",
-                brandCategory = "",
-                effecterType = "",
-                description = "",
-                sellerId = "sellerId1",
-                onBackPressed = { navController.popBackStack() }
-            )
-        }
+        // 채팅 화면 라우트
         composable("chat/{chatRoomId}") { backStackEntry ->
             val chatRoomId = backStackEntry.arguments?.getString("chatRoomId") ?: ""
             ChatScreen(chatRoomId)
         }
     }
 }
-
-
 @OptIn(ExperimentalFoundationApi::class, ExperimentalMaterial3Api::class)
 @Composable
 fun ItemDetailScreen(
@@ -101,6 +94,7 @@ fun ItemDetailScreen(
     sellerId: String,
     onBackPressed: () -> Unit,
     viewModel: ItemDetailViewModel = androidx.lifecycle.viewmodel.compose.viewModel(),
+    onChatNavigate: (String) -> Unit
 ) {
     val imageUrls = remember(imageUrl) { imageUrl.split(",") }
     val pagerState = rememberPagerState { imageUrls.size }
@@ -267,7 +261,7 @@ fun ItemDetailScreen(
                                 buyerId = currentUserId ?:"",
                                 onChatRoomFound = { chatRoomId ->
                                     Toast.makeText(context, "채팅방 이동: $chatRoomId", Toast.LENGTH_SHORT).show()
-                                    //navController.navigate("chat/$chatRoomId")
+                                    onChatNavigate(chatRoomId)
                                 },
                                 onError = { exception ->
                                     Toast.makeText(context, "채팅방 생성 오류: ${exception.message}", Toast.LENGTH_SHORT).show()
