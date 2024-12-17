@@ -1,5 +1,3 @@
-package com.example.jull
-
 import androidx.lifecycle.ViewModel
 import com.google.firebase.firestore.FirebaseFirestore
 
@@ -27,18 +25,34 @@ class ItemDetailViewModel : ViewModel() {
                     val newChatRoom = hashMapOf(
                         "itemId" to itemId,
                         "sellerId" to sellerId,
-                        "buyerId" to buyerId,
-                        "messages" to emptyList<Map<String, Any>>()
+                        "buyerId" to buyerId
                     )
                     chatRoomsRef.add(newChatRoom)
                         .addOnSuccessListener { documentReference ->
-                            onChatRoomFound(documentReference.id) // 새 채팅방 ID 반환
+                            val chatRoomId = documentReference.id
+
+                            // 새로 생성된 채팅방의 messages 서브 컬렉션에 첫 메시지 추가
+                            val welcomeMessage = hashMapOf(
+                                "senderId" to sellerId,
+                                "content" to "안녕하세요! 채팅을 시작해보세요.",
+                                "timestamp" to System.currentTimeMillis()
+                            )
+                            firestore.collection("chatRooms")
+                                .document(chatRoomId)
+                                .collection("messages")
+                                .add(welcomeMessage)
+                                .addOnSuccessListener {
+                                    onChatRoomFound(chatRoomId)
+                                }
+                                .addOnFailureListener { exception ->
+                                    onError(exception)
+                                }
                         }
                         .addOnFailureListener { exception ->
                             onError(exception)
                         }
                 } else {
-                    // 기존 채팅방으로 이동
+                    // 기존 채팅방 ID 반환
                     val chatRoomId = querySnapshot.documents[0].id
                     onChatRoomFound(chatRoomId)
                 }

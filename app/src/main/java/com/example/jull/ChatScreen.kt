@@ -65,6 +65,7 @@ fun ChatScreen(chatRoomId: String) {
                 val isCurrentUser = senderId == currentUserId
 
                 MessageBubble(content = content, isCurrentUser = isCurrentUser)
+
             }
         }
 
