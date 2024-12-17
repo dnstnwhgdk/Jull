@@ -26,13 +26,11 @@ fun Home() {
     var errorMessage by remember { mutableStateOf<String?>(null) }
     var itemFavoriteCounts by remember { mutableStateOf<Map<String, Int>>(emptyMap()) }
 
-    // 찜 개수를 실시간으로 업데이트하는 리스너
     LaunchedEffect(Unit) {
         val firestore = FirebaseFirestore.getInstance()
         firestore.collection("favorites")
             .addSnapshotListener { snapshot, e ->
                 if (snapshot != null) {
-                    // 각 아이템별 찜 개수를 계산
                     val counts = snapshot.documents
                         .groupBy { it.getString("itemId") ?: "" }
                         .mapValues { it.value.size }
@@ -41,7 +39,6 @@ fun Home() {
             }
     }
 
-    // Firestore에서 데이터 로드
     LaunchedEffect(selectedButtonIndex) {
         isLoading = true
         errorMessage = null
@@ -65,16 +62,13 @@ fun Home() {
                         }
                     }
 
-                    // 선택된 카테고리에 따라 필터링
                     val filteredItems = when (selectedButtonIndex) {
                         0 -> loadedItems.sortedByDescending { item ->
-                            itemFavoriteCounts[item.id] ?: 0  // 찜 개수로 정렬
+                            itemFavoriteCounts[item.id] ?: 0
                         }
-                        1 -> loadedItems // 최신상품 (이미 createdAt으로 정렬됨)
-                        2 -> loadedItems.filter { it.brandCategory.contains("빈티지") }
-                        3 -> loadedItems.sortedBy { it.price.replace("[^0-9]".toRegex(), "").toIntOrNull() ?: 0 }
-                        4 -> loadedItems.sortedByDescending { it.price.replace("[^0-9]".toRegex(), "").toIntOrNull() ?: 0 }
-                        5 -> loadedItems // 베스트상품
+                        1 -> loadedItems
+                        2 -> loadedItems.sortedBy { it.price.replace("[^0-9]".toRegex(), "").toIntOrNull() ?: 0 }
+                        3 -> loadedItems.sortedByDescending { it.price.replace("[^0-9]".toRegex(), "").toIntOrNull() ?: 0 }
                         else -> loadedItems
                     }
 
@@ -88,7 +82,7 @@ fun Home() {
         Column(
             modifier = Modifier
                 .fillMaxWidth()
-                .padding(16.dp)
+                .padding(horizontal = 16.dp, vertical = 0.dp)  // vertical padding 줄임
         ) {
             Row(
                 verticalAlignment = Alignment.CenterVertically
@@ -103,22 +97,21 @@ fun Home() {
                     Icon(Icons.Default.Notifications, contentDescription = "알람")
                 }
             }
-            LazyRow {
-                items(6) { index ->
+
+            Row(
+                modifier = Modifier
+                    .fillMaxWidth(),
+                horizontalArrangement = Arrangement.SpaceEvenly
+            ) {
+                listOf("인기상품", "최신상품", "저가상품", "고가상품").forEachIndexed { index, text ->
                     TextButton(
                         onClick = { selectedButtonIndex = index },
                         colors = ButtonDefaults.textButtonColors(
                             contentColor = if (selectedButtonIndex == index) Color.Black else Color.Gray
                         ),
+                        modifier = Modifier.weight(1f)
                     ) {
-                        when (index) {
-                            0 -> Text("인기상품")
-                            1 -> Text("최신상품")
-                            2 -> Text("빈티지")
-                            3 -> Text("저가상품")
-                            4 -> Text("고가상품")
-                            5 -> Text("베스트상품")
-                        }
+                        Text(text)
                     }
                 }
             }
