@@ -66,7 +66,8 @@ fun Board() {
                     val intent = Intent(context, CreatePostActivity::class.java)
                     context.startActivity(intent)
                 },
-                containerColor = Color.Black
+                containerColor = Color.Black,
+                contentColor = Color.White,
             ) {
                 Icon(Icons.Filled.Add, contentDescription = "글쓰기")
             }
