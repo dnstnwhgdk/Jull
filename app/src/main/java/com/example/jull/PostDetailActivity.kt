@@ -1,5 +1,6 @@
 package com.example.jull
 
+import android.content.Intent
 import android.os.Bundle
 import android.widget.Toast
 import androidx.activity.ComponentActivity
@@ -9,6 +10,8 @@ import androidx.compose.foundation.lazy.LazyColumn
 import androidx.compose.foundation.lazy.items
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.filled.ArrowBack
+import androidx.compose.material.icons.filled.Delete
+import androidx.compose.material.icons.filled.Edit
 import androidx.compose.material.icons.filled.Favorite
 import androidx.compose.material.icons.outlined.FavoriteBorder
 import androidx.compose.material3.*
@@ -25,6 +28,7 @@ import com.google.firebase.firestore.FirebaseFirestore
 import com.google.firebase.firestore.Query
 import java.text.SimpleDateFormat
 import java.util.*
+import androidx.compose.material3.AlertDialog
 
 class PostDetailActivity : ComponentActivity() {
     override fun onCreate(savedInstanceState: Bundle?) {
@@ -45,6 +49,7 @@ fun PostDetailScreen(postId: String, onBack: () -> Unit) {
     var post by remember { mutableStateOf<Post?>(null) }
     var isLoading by remember { mutableStateOf(true) }
     var isLiked by remember { mutableStateOf(false) }
+    var showDeleteDialog by remember { mutableStateOf(false) }
     val currentUserId = FirebaseAuth.getInstance().currentUser?.uid
     val firestore = FirebaseFirestore.getInstance()
     val context = LocalContext.current
@@ -68,6 +73,39 @@ fun PostDetailScreen(postId: String, onBack: () -> Unit) {
         }
     }
 
+    // 게시글 삭제 다이얼로그
+    if (showDeleteDialog) {
+        AlertDialog(
+            onDismissRequest = { showDeleteDialog = false },
+            title = { Text("게시글 삭제") },
+            text = { Text("정말 삭제하시겠습니까?") },
+            confirmButton = {
+                TextButton(
+                    onClick = {
+                        firestore.collection("posts")
+                            .document(postId)
+                            .delete()
+                            .addOnSuccessListener {
+                                Toast.makeText(context, "게시글이 삭제되었습니다", Toast.LENGTH_SHORT).show()
+                                onBack()
+                            }
+                            .addOnFailureListener { e ->
+                                Toast.makeText(context, "삭제 실패: ${e.message}", Toast.LENGTH_SHORT).show()
+                            }
+                        showDeleteDialog = false
+                    }
+                ) {
+                    Text("삭제")
+                }
+            },
+            dismissButton = {
+                TextButton(onClick = { showDeleteDialog = false }) {
+                    Text("취소")
+                }
+            }
+        )
+    }
+
     Scaffold(
         topBar = {
             TopAppBar(
@@ -75,6 +113,26 @@ fun PostDetailScreen(postId: String, onBack: () -> Unit) {
                 navigationIcon = {
                     IconButton(onClick = onBack) {
                         Icon(Icons.Default.ArrowBack, contentDescription = "뒤로가기")
+                    }
+                },
+                actions = {
+                    if (post?.userId == currentUserId) {
+                        IconButton(
+                            onClick = {
+                                val intent = Intent(context, EditPostActivity::class.java).apply {
+                                    putExtra("postId", postId)
+                                    putExtra("title", post?.title)
+                                    putExtra("content", post?.content)
+                                }
+                                context.startActivity(intent)
+                            }
+                        ) {
+                            Icon(Icons.Default.Edit, contentDescription = "수정")
+                        }
+
+                        IconButton(onClick = { showDeleteDialog = true }) {
+                            Icon(Icons.Default.Delete, contentDescription = "삭제")
+                        }
                     }
                 },
                 colors = TopAppBarDefaults.topAppBarColors(
@@ -107,6 +165,7 @@ fun PostDetailScreen(postId: String, onBack: () -> Unit) {
                         .padding(padding)
                         .padding(16.dp)
                 ) {
+                    // 게시글 내용 표시
                     item {
                         Text(
                             text = post!!.title,
@@ -141,6 +200,8 @@ fun PostDetailScreen(postId: String, onBack: () -> Unit) {
                         Spacer(modifier = Modifier.height(16.dp))
                         Divider()
                         Spacer(modifier = Modifier.height(16.dp))
+
+                        // 좋아요 버튼 및 카운트
                         Row(
                             modifier = Modifier.fillMaxWidth(),
                             horizontalArrangement = Arrangement.SpaceBetween,
@@ -191,13 +252,14 @@ fun PostDetailScreen(postId: String, onBack: () -> Unit) {
                                 color = Color.Gray
                             )
                         }
-
                         Spacer(modifier = Modifier.height(24.dp))
                     }
 
                     // 댓글 입력 부분
+                    // 댓글 입력 부분
                     item {
                         var commentText by remember { mutableStateOf("") }
+                        var showCommentDeleteDialog by remember { mutableStateOf<String?>(null) }
 
                         Column {
                             Text(
@@ -278,21 +340,59 @@ fun PostDetailScreen(postId: String, onBack: () -> Unit) {
 
                         if (comments.isNotEmpty()) {
                             comments.forEach { comment ->
+                                var showDeleteDialog by remember { mutableStateOf(false) }
+
                                 CommentItem(
                                     comment = comment,
                                     currentUserId = currentUserId,
-                                    onDelete = { commentId ->
+                                    onDelete = { showDeleteDialog = true },
+                                    onEdit = { newContent ->
                                         firestore.collection("comments")
-                                            .document(commentId)
-                                            .delete()
+                                            .document(comment.id)
+                                            .update("content", newContent)
                                             .addOnSuccessListener {
-                                                firestore.collection("posts")
-                                                    .document(postId)
-                                                    .update("commentCount", (post?.commentCount ?: 1) - 1)
+                                                Toast.makeText(context, "댓글이 수정되었습니다", Toast.LENGTH_SHORT).show()
+                                            }
+                                            .addOnFailureListener { e ->
+                                                Toast.makeText(context, "수정 실패: ${e.message}", Toast.LENGTH_SHORT).show()
                                             }
                                     }
                                 )
                                 Spacer(modifier = Modifier.height(8.dp))
+
+                                if (showDeleteDialog) {
+                                    AlertDialog(
+                                        onDismissRequest = { showDeleteDialog = false },
+                                        title = { Text("댓글 삭제") },
+                                        text = { Text("정말 삭제하시겠습니까?") },
+                                        confirmButton = {
+                                            TextButton(
+                                                onClick = {
+                                                    firestore.collection("comments")
+                                                        .document(comment.id)
+                                                        .delete()
+                                                        .addOnSuccessListener {
+                                                            firestore.collection("posts")
+                                                                .document(postId)
+                                                                .update("commentCount", (post?.commentCount ?: 1) - 1)
+                                                            Toast.makeText(context, "댓글이 삭제되었습니다", Toast.LENGTH_SHORT).show()
+                                                        }
+                                                        .addOnFailureListener { e ->
+                                                            Toast.makeText(context, "삭제 실패: ${e.message}", Toast.LENGTH_SHORT).show()
+                                                        }
+                                                    showDeleteDialog = false
+                                                }
+                                            ) {
+                                                Text("삭제")
+                                            }
+                                        },
+                                        dismissButton = {
+                                            TextButton(onClick = { showDeleteDialog = false }) {
+                                                Text("취소")
+                                            }
+                                        }
+                                    )
+                                }
                             }
                         }
                     }
@@ -306,17 +406,17 @@ fun PostDetailScreen(postId: String, onBack: () -> Unit) {
 fun CommentItem(
     comment: Comment,
     currentUserId: String?,
-    onDelete: (String) -> Unit
+    onDelete: () -> Unit,
+    onEdit: (String) -> Unit
 ) {
+    var isEditing by remember { mutableStateOf(false) }
+    var editedContent by remember { mutableStateOf(comment.content) }
+
     Card(
         modifier = Modifier.fillMaxWidth(),
-        colors = CardDefaults.cardColors(
-            containerColor = Color(0xFFF5F5F5)
-        )
+        colors = CardDefaults.cardColors(containerColor = Color(0xFFF5F5F5))
     ) {
-        Column(
-            modifier = Modifier.padding(12.dp)
-        ) {
+        Column(modifier = Modifier.padding(12.dp)) {
             Row(
                 modifier = Modifier.fillMaxWidth(),
                 horizontalArrangement = Arrangement.SpaceBetween,
@@ -328,23 +428,49 @@ fun CommentItem(
                     fontWeight = FontWeight.Bold
                 )
                 if (comment.userId == currentUserId) {
-                    TextButton(
-                        onClick = { onDelete(comment.id) }
-                    ) {
-                        Text(
-                            text = "삭제",
-                            color = Color.Red,
-                            fontSize = 12.sp
-                        )
+                    Row {
+                        if (isEditing) {
+                            TextButton(
+                                onClick = {
+                                    if (editedContent.isNotBlank()) {
+                                        onEdit(editedContent)
+                                        isEditing = false
+                                    }
+                                }
+                            ) {
+                                Text("저장", color = Color.Blue)
+                            }
+                            TextButton(
+                                onClick = { isEditing = false }
+                            ) {
+                                Text("취소", color = Color.Gray)
+                            }
+                        } else {
+                            TextButton(
+                                onClick = { isEditing = true }
+                            ) {
+                                Text("수정", color = Color.Blue)
+                            }
+                            TextButton(
+                                onClick = onDelete
+                            ) {
+                                Text("삭제", color = Color.Red)
+                            }
+                        }
                     }
                 }
             }
-            Spacer(modifier = Modifier.height(4.dp))
-            Text(
-                text = comment.content,
-                fontSize = 14.sp
-            )
-            Spacer(modifier = Modifier.height(4.dp))
+
+            if (isEditing) {
+                OutlinedTextField(
+                    value = editedContent,
+                    onValueChange = { editedContent = it },
+                    modifier = Modifier.fillMaxWidth()
+                )
+            } else {
+                Text(text = comment.content)
+            }
+
             Text(
                 text = SimpleDateFormat("yyyy.MM.dd HH:mm", Locale.getDefault())
                     .format(comment.createdAt),

@@ -51,6 +51,10 @@
         <activity
             android:name=".PostDetailActivity"
             android:exported="false" />
+        <activity
+            android:name=".EditPostActivity"
+            android:exported="false"
+            android:windowSoftInputMode="adjustResize" />
     </application>
 
 </manifest>
