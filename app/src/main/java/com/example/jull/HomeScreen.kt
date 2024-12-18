@@ -2,6 +2,8 @@ package com.example.jull
 
 import android.content.Intent
 import android.widget.Toast
+import androidx.compose.foundation.clickable
+import androidx.compose.foundation.interaction.MutableInteractionSource
 import androidx.compose.foundation.layout.*
 import androidx.compose.foundation.lazy.LazyRow
 import androidx.compose.material.icons.Icons
@@ -12,6 +14,7 @@ import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.platform.LocalContext
+import androidx.compose.ui.platform.LocalFocusManager
 import androidx.compose.ui.unit.dp
 import com.google.firebase.firestore.FirebaseFirestore
 import com.google.firebase.firestore.Query
@@ -25,6 +28,7 @@ fun Home() {
     var isLoading by remember { mutableStateOf(true) }
     var errorMessage by remember { mutableStateOf<String?>(null) }
     var itemFavoriteCounts by remember { mutableStateOf<Map<String, Int>>(emptyMap()) }
+    val focusManager = LocalFocusManager.current
 
     LaunchedEffect(Unit) {
         val firestore = FirebaseFirestore.getInstance()
@@ -78,7 +82,9 @@ fun Home() {
             }
     }
 
-    Column {
+    Column(
+        modifier = Modifier.clickable(indication = null,interactionSource = remember { MutableInteractionSource() }){focusManager.clearFocus()}
+    ) {
         Column(
             modifier = Modifier
                 .fillMaxWidth()
