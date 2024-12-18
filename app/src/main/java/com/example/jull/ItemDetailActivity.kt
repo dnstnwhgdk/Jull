@@ -17,8 +17,6 @@ import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.foundation.verticalScroll
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.filled.ArrowBack
-import androidx.compose.material.icons.filled.Favorite
-import androidx.compose.material.icons.outlined.FavoriteBorder
 import androidx.compose.material3.*
 import androidx.compose.runtime.*
 import androidx.compose.ui.Alignment
@@ -48,39 +46,20 @@ class ItemDetailActivity : ComponentActivity() {
         val effecterType = intent.getStringExtra("effecterType") ?: ""
         val description = intent.getStringExtra("description") ?: ""
         val sellerId = intent.getStringExtra("sellerId") ?: ""
-        val id = intent.getStringExtra("id") ?: ""
+        val itemId = intent.getStringExtra("itemId") ?: ""
+        val createdAt = intent.getStringExtra("createdAt") ?: ""
 
         setContent {
-            CppNavigation(
-                imageUrl = imageUrl,
-                title = title,
-                price = price,
-                brandCategory = brandCategory,
-                effecterType = effecterType,
-                description = description,
-                sellerId = sellerId,
-                itemId = id,
-                onBackPressed = { finish() } // Activity 종료 콜백 추가
-            )
+            CppNavigation(imageUrl, title, price, brandCategory, effecterType, description, sellerId,onBackPressed = {finish()})
         }
     }
 }
-
 @Composable
-fun CppNavigation(
-    imageUrl: String,
-    title: String,
-    price: String,
-    brandCategory: String,
-    effecterType: String,
-    description: String,
-    sellerId: String,
-    itemId: String,
-    onBackPressed: () -> Unit // 추가된 파라미터
-) {
+fun CppNavigation(imageUrl: String, title: String, price: String, brandCategory: String, effecterType: String, description: String, sellerId: String,onBackPressed: () ->Unit) {
     val navController = rememberNavController()
 
     NavHost(navController = navController, startDestination = "itemDetail") {
+        // 상품 상세 화면 라우트
         composable("itemDetail") {
             ItemDetailScreen(
                 imageUrl = imageUrl,
@@ -90,17 +69,20 @@ fun CppNavigation(
                 effecterType = effecterType,
                 description = description,
                 sellerId = sellerId,
-                itemId = itemId,
-                onBackPressed = onBackPressed, // Activity의 onBackPressed 전달
+                onBackPressed  = onBackPressed,
                 onChatNavigate = { chatRoomId ->
                     navController.navigate("chat/$chatRoomId")
-                }
+                },
             )
         }
-        // ... 나머지 코드
+
+        // 채팅 화면 라우트
+        composable("chat/{chatRoomId}") { backStackEntry ->
+            val chatRoomId = backStackEntry.arguments?.getString("chatRoomId") ?: ""
+            ChatScreen(chatRoomId)
+        }
     }
 }
-
 @OptIn(ExperimentalFoundationApi::class, ExperimentalMaterial3Api::class)
 @Composable
 fun ItemDetailScreen(
@@ -111,7 +93,6 @@ fun ItemDetailScreen(
     effecterType: String,
     description: String,
     sellerId: String,
-    itemId: String,
     onBackPressed: () -> Unit,
     viewModel: ItemDetailViewModel = androidx.lifecycle.viewmodel.compose.viewModel(),
     onChatNavigate: (String) -> Unit
@@ -120,28 +101,8 @@ fun ItemDetailScreen(
     val pagerState = rememberPagerState { imageUrls.size }
     val currentUserId = FirebaseAuth.getInstance().currentUser?.uid
     val context = LocalContext.current
-    val firestore = FirebaseFirestore.getInstance()
 
-    var isFavorite by remember { mutableStateOf(false) }
-    var favoriteCount by remember { mutableStateOf(0) }
 
-    LaunchedEffect(itemId, currentUserId) {
-        if (currentUserId != null) {
-            firestore.collection("favorites")
-                .document("${currentUserId}_${itemId}")
-                .get()
-                .addOnSuccessListener { document ->
-                    isFavorite = document.exists()
-                }
-
-            firestore.collection("favorites")
-                .whereEqualTo("itemId", itemId)
-                .get()
-                .addOnSuccessListener { documents ->
-                    favoriteCount = documents.size()
-                }
-        }
-    }
 
     Scaffold(
         topBar = {
@@ -150,54 +111,6 @@ fun ItemDetailScreen(
                 navigationIcon = {
                     IconButton(onClick = onBackPressed) {
                         Icon(Icons.Default.ArrowBack, contentDescription = "뒤로가기")
-                    }
-                },
-                actions = {
-                    Row(
-                        verticalAlignment = Alignment.CenterVertically
-                    ) {
-                        Text(
-                            text = favoriteCount.toString(),
-                            color = Color.Gray,
-                            modifier = Modifier.padding(end = 4.dp)
-                        )
-                        IconButton(
-                            onClick = {
-                                if (currentUserId != null) {
-                                    val favoriteRef = firestore.collection("favorites")
-                                        .document("${currentUserId}_${itemId}")
-
-                                    if (isFavorite) {
-                                        favoriteRef.delete()
-                                            .addOnSuccessListener {
-                                                isFavorite = false
-                                                favoriteCount--
-                                                Toast.makeText(context, "찜 목록에서 제거되었습니다", Toast.LENGTH_SHORT).show()
-                                            }
-                                    } else {
-                                        val favorite = hashMapOf(
-                                            "userId" to currentUserId,
-                                            "itemId" to itemId,
-                                            "createdAt" to Date()
-                                        )
-                                        favoriteRef.set(favorite)
-                                            .addOnSuccessListener {
-                                                isFavorite = true
-                                                favoriteCount++
-                                                Toast.makeText(context, "찜 목록에 추가되었습니다", Toast.LENGTH_SHORT).show()
-                                            }
-                                    }
-                                } else {
-                                    Toast.makeText(context, "로그인이 필요합니다", Toast.LENGTH_SHORT).show()
-                                }
-                            }
-                        ) {
-                            Icon(
-                                imageVector = if (isFavorite) Icons.Filled.Favorite else Icons.Outlined.FavoriteBorder,
-                                contentDescription = if (isFavorite) "찜 해제" else "찜하기",
-                                tint = if (isFavorite) Color.Red else Color.Gray
-                            )
-                        }
                     }
                 }
             )
@@ -214,6 +127,7 @@ fun ItemDetailScreen(
                     .fillMaxWidth()
                     .aspectRatio(1f)
             ) {
+                // 이미지 페이저
                 HorizontalPager(
                     state = pagerState,
                     modifier = Modifier.fillMaxSize()
@@ -226,6 +140,7 @@ fun ItemDetailScreen(
                     )
                 }
 
+                // 페이지 인디케이터
                 if (imageUrls.size > 1) {
                     Box(
                         modifier = Modifier
@@ -258,17 +173,20 @@ fun ItemDetailScreen(
                 }
             }
 
+            // 상품 정보
             Column(
                 modifier = Modifier
                     .fillMaxWidth()
                     .padding(16.dp)
             ) {
+                // 브랜드 카테고리 표시
                 Text(
                     text = brandCategory,
                     fontSize = 14.sp,
                     color = Color.Gray
                 )
 
+                // 이펙터 유형 표시
                 Text(
                     text = effecterType,
                     fontSize = 14.sp,
@@ -305,9 +223,13 @@ fun ItemDetailScreen(
 
                 Spacer(modifier = Modifier.height(24.dp))
 
+                // 버튼 영역
                 if (currentUserId == sellerId) {
+                    // 판매자가 자신의 상품을 볼 때
                     Button(
                         onClick = {
+                            // 끌어올리기 기능 구현
+                            val firestore = FirebaseFirestore.getInstance()
                             firestore.collection("items")
                                 .whereEqualTo("sellerId", sellerId)
                                 .whereEqualTo("title", title)
@@ -333,12 +255,13 @@ fun ItemDetailScreen(
                         Text("물건 끌어올리기")
                     }
                 } else {
+                    // 다른 사용자가 상품을 볼 때
                     Button(
                         onClick = {
                             viewModel.findOrCreateChatRoom(
-                                itemId = itemId,
+                                itemId = title, // itemId가 필요하므로 title 대체 가능
                                 sellerId = sellerId,
-                                buyerId = currentUserId ?: "",
+                                buyerId = currentUserId ?:"",
                                 onChatRoomFound = { chatRoomId ->
                                     Toast.makeText(context, "채팅방 이동: $chatRoomId", Toast.LENGTH_SHORT).show()
                                     onChatNavigate(chatRoomId)
@@ -347,6 +270,7 @@ fun ItemDetailScreen(
                                     Toast.makeText(context, "채팅방 생성 오류: ${exception.message}", Toast.LENGTH_SHORT).show()
                                 }
                             )
+
                         },
                         modifier = Modifier
                             .fillMaxWidth()
