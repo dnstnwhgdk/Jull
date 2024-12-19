@@ -116,7 +116,7 @@ fun My() {
                     0 -> ProfileScreen(userInfoList)
                     1 -> MyItem()
                     2 -> Wishlist()
-                    3 -> Text("알림/블라인드 화면", modifier = Modifier.padding(16.dp))
+                    3 -> NotificationScreen()
                 }
             }
         }

@@ -70,6 +70,8 @@ dependencies {
     // Pager 의존성 추가
     implementation("com.google.accompanist:accompanist-pager:0.32.0")
     implementation("com.google.accompanist:accompanist-pager-indicators:0.32.0")
+    // FlowLayout 의존성 추가
+    implementation("com.google.accompanist:accompanist-flowlayout:0.31.5-beta")
 
     testImplementation(libs.junit)
     androidTestImplementation(libs.androidx.junit)
