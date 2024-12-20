@@ -40,11 +40,7 @@ fun Home() {
     var itemFavoriteCounts by remember { mutableStateOf<Map<String, Int>>(emptyMap()) }
     var showCategorySheet by remember { mutableStateOf(false) }
     var selectedCategories by remember { mutableStateOf<List<String>>(emptyList()) }
-    // 여기에 새로 추가되는 상태 변수들
-    var showKeywordDialog by remember { mutableStateOf(false) }
-    var keywordInput by remember { mutableStateOf("") }
     val focusManager = LocalFocusManager.current
-    var savedKeywords by remember { mutableStateOf<List<NotificationKeyword>>(emptyList()) }
 
     val brandTypes = listOf(
         BrandType("국내 브랜드", listOf("Altonics", "Amsterdam cream",
@@ -89,7 +85,6 @@ fun Home() {
             }
     }
 
-    // Firebase에서 데이터를 가져오는 부분
     LaunchedEffect(Unit) {
         isLoading = true
         errorMessage = null
@@ -117,9 +112,7 @@ fun Home() {
             }
     }
 
-    // 검색어, 카테고리, 정렬 방식이 변경될 때마다 필터링 수행
     LaunchedEffect(searchText, selectedCategories, selectedButtonIndex, originalItems) {
-        // 먼저 검색어로 필터링
         val searchFiltered = if (searchText.isEmpty()) originalItems
         else originalItems.filter { item ->
             item.title.contains(searchText, ignoreCase = true) ||
@@ -127,7 +120,6 @@ fun Home() {
                     item.effecterType.contains(searchText, ignoreCase = true)
         }
 
-        // 카테고리로 필터링
         val categoryFiltered = if (selectedCategories.isEmpty()) searchFiltered
         else searchFiltered.filter { item ->
             selectedCategories.all { category ->
@@ -135,29 +127,12 @@ fun Home() {
             }
         }
 
-        // 마지막으로 정렬
         filteredItems = when (selectedButtonIndex) {
             0 -> categoryFiltered.sortedByDescending { item -> itemFavoriteCounts[item.id] ?: 0 }
             1 -> categoryFiltered
             2 -> categoryFiltered.sortedBy { it.price.replace("[^0-9]".toRegex(), "").toIntOrNull() ?: 0 }
             3 -> categoryFiltered.sortedByDescending { it.price.replace("[^0-9]".toRegex(), "").toIntOrNull() ?: 0 }
             else -> categoryFiltered
-        }
-    }
-
-    LaunchedEffect(Unit) {
-        val currentUser = FirebaseAuth.getInstance().currentUser
-        if (currentUser != null) {
-            FirebaseFirestore.getInstance()
-                .collection("notificationKeywords")
-                .whereEqualTo("userId", currentUser.uid)
-                .addSnapshotListener { snapshot, _ ->
-                    if (snapshot != null) {
-                        savedKeywords = snapshot.documents.mapNotNull { doc ->
-                            doc.toObject(NotificationKeyword::class.java)?.copy(id = doc.id)
-                        }
-                    }
-                }
         }
     }
 
@@ -186,110 +161,9 @@ fun Home() {
                         }
                     }
                 )
-                IconButton(onClick = { showKeywordDialog = true }) {
-                    Icon(Icons.Default.Notifications, contentDescription = "알림 키워드 설정")
+                IconButton(onClick = { /* 추후 기능 추가 예정 */ }) {
+                    Icon(Icons.Default.Notifications, contentDescription = "알림")
                 }
-            }
-
-            if (showKeywordDialog) {
-                AlertDialog(
-                    onDismissRequest = {
-                        showKeywordDialog = false
-                        keywordInput = ""
-                    },
-                    title = { Text("알림 키워드 관리") },
-                    text = {
-                        Column {
-                            // 기존 키워드 목록 표시
-                            if (savedKeywords.isNotEmpty()) {
-                                Text(
-                                    "등록된 키워드",
-                                    style = MaterialTheme.typography.titleSmall,
-                                    modifier = Modifier.padding(bottom = 8.dp)
-                                )
-                                savedKeywords.forEach { keyword ->
-                                    Row(
-                                        modifier = Modifier
-                                            .fillMaxWidth()
-                                            .padding(vertical = 4.dp),
-                                        horizontalArrangement = Arrangement.SpaceBetween,
-                                        verticalAlignment = Alignment.CenterVertically
-                                    ) {
-                                        Text(keyword.keyword)
-                                        IconButton(
-                                            onClick = {
-                                                FirebaseFirestore.getInstance()
-                                                    .collection("notificationKeywords")
-                                                    .document(keyword.id)
-                                                    .delete()
-                                                    .addOnSuccessListener {
-                                                        Toast.makeText(
-                                                            context,
-                                                            "키워드가 삭제되었습니다",
-                                                            Toast.LENGTH_SHORT
-                                                        ).show()
-                                                    }
-                                            }
-                                        ) {
-                                            Icon(
-                                                Icons.Default.Close,
-                                                contentDescription = "삭제",
-                                                modifier = Modifier.size(16.dp)
-                                            )
-                                        }
-                                    }
-                                }
-                                Divider(modifier = Modifier.padding(vertical = 8.dp))
-                            }
-
-                            // 새 키워드 입력
-                            Text(
-                                "새 키워드 추가",
-                                style = MaterialTheme.typography.titleSmall,
-                                modifier = Modifier.padding(bottom = 8.dp)
-                            )
-                            OutlinedTextField(
-                                value = keywordInput,
-                                onValueChange = { keywordInput = it },
-                                placeholder = { Text("키워드를 입력하세요") },
-                                modifier = Modifier.fillMaxWidth()
-                            )
-                        }
-                    },
-                    confirmButton = {
-                        TextButton(
-                            onClick = {
-                                val currentUser = FirebaseAuth.getInstance().currentUser
-                                if (currentUser != null && keywordInput.isNotEmpty()) {
-                                    val keyword = NotificationKeyword(
-                                        userId = currentUser.uid,
-                                        keyword = keywordInput
-                                    )
-                                    FirebaseFirestore.getInstance()
-                                        .collection("notificationKeywords")
-                                        .add(keyword)
-                                        .addOnSuccessListener {
-                                            Toast.makeText(context, "키워드가 등록되었습니다", Toast.LENGTH_SHORT).show()
-                                            keywordInput = ""
-                                        }
-                                        .addOnFailureListener {
-                                            Toast.makeText(context, "키워드 등록에 실패했습니다", Toast.LENGTH_SHORT).show()
-                                        }
-                                }
-                            }
-                        ) {
-                            Text("등록")
-                        }
-                    },
-                    dismissButton = {
-                        TextButton(onClick = {
-                            showKeywordDialog = false
-                            keywordInput = ""
-                        }) {
-                            Text("닫기")
-                        }
-                    }
-                )
             }
 
             if (selectedCategories.isNotEmpty()) {
@@ -376,6 +250,7 @@ fun Home() {
                             putExtra("description", item.description)
                             putExtra("sellerId", item.sellerId)
                             putExtra("id", item.id)
+                            putExtra("createdAt", item.createdAt)
                         }
                         context.startActivity(intent)
                     }
