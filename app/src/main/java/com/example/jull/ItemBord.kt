@@ -1,47 +1,52 @@
 package com.example.jull
 
 import android.widget.Toast
+import androidx.compose.foundation.background
 import androidx.compose.foundation.clickable
-import androidx.compose.foundation.layout.Box
-import androidx.compose.foundation.layout.Column
-import androidx.compose.foundation.layout.PaddingValues
-import androidx.compose.foundation.layout.Row
-import androidx.compose.foundation.layout.Spacer
-import androidx.compose.foundation.layout.defaultMinSize
-import androidx.compose.foundation.layout.fillMaxHeight
-import androidx.compose.foundation.layout.fillMaxSize
-import androidx.compose.foundation.layout.fillMaxWidth
-import androidx.compose.foundation.layout.padding
-import androidx.compose.foundation.layout.size
-import androidx.compose.foundation.layout.width
-import androidx.compose.foundation.layout.wrapContentSize
+import androidx.compose.foundation.layout.*
 import androidx.compose.foundation.lazy.grid.GridCells
 import androidx.compose.foundation.lazy.grid.LazyVerticalGrid
 import androidx.compose.foundation.lazy.grid.items
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.filled.Favorite
 import androidx.compose.material.icons.outlined.FavoriteBorder
-import androidx.compose.material3.Card
-import androidx.compose.material3.Icon
-import androidx.compose.material3.IconButton
-import androidx.compose.material3.Text
-import androidx.compose.runtime.Composable
-import androidx.compose.runtime.LaunchedEffect
-import androidx.compose.runtime.getValue
-import androidx.compose.runtime.mutableStateOf
-import androidx.compose.runtime.remember
-import androidx.compose.runtime.setValue
+import androidx.compose.material3.*
+import androidx.compose.runtime.*
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.graphics.Color
+import androidx.compose.ui.layout.ContentScale
 import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.text.font.FontWeight
+import androidx.compose.ui.tooling.preview.Preview
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import coil.compose.AsyncImage
 import com.google.firebase.auth.FirebaseAuth
 import com.google.firebase.firestore.FirebaseFirestore
 import java.util.Date
+
+private fun getTimeAgo(date: Date): String {
+    val now = Date()
+    val diff = now.time - date.time
+    val seconds = diff / 1000
+    val minutes = seconds / 60
+    val hours = minutes / 60
+    val days = hours / 24
+    val weeks = days / 7
+    val months = days / 30
+    val years = days / 365
+
+    return when {
+        seconds < 60 -> "방금"
+        minutes < 60 -> "${minutes}분 전"
+        hours < 24 -> "${hours}시간 전"
+        days < 7 -> "${days}일 전"
+        weeks < 4 -> "${weeks}주 전"
+        months < 12 -> "${months}달 전"
+        else -> "${years}년 전"
+    }
+}
 
 @Composable
 fun ItemBord(
@@ -62,10 +67,8 @@ fun ItemBord(
                     var isFavorite by remember { mutableStateOf(false) }
                     var favoriteCount by remember { mutableStateOf(0) }
 
-                    // 찜 상태와 개수 확인
                     LaunchedEffect(item.id, currentUserId) {
                         if (currentUserId != null) {
-                            // 내가 찜한 상태 확인
                             firestore.collection("favorites")
                                 .document("${currentUserId}_${item.id}")
                                 .get()
@@ -74,7 +77,6 @@ fun ItemBord(
                                 }
                         }
 
-                        // 전체 찜 개수 확인
                         firestore.collection("favorites")
                             .whereEqualTo("itemId", item.id)
                             .get()
@@ -94,15 +96,41 @@ fun ItemBord(
                                 .fillMaxWidth()
                                 .fillMaxHeight()
                         ) {
-                            Column(modifier = Modifier
-                                .padding(10.dp)
-                                .fillMaxWidth()
+                            Column(
+                                modifier = Modifier
+                                    .padding(10.dp)
+                                    .fillMaxWidth()
                             ) {
-                                AsyncImage(
-                                    model = item.imageUrl.split(",").firstOrNull(),
-                                    contentDescription = "상품 이미지",
-                                    modifier = Modifier.defaultMinSize(150.dp, 230.dp)
-                                )
+                                Box(
+                                    modifier = Modifier.fillMaxWidth()
+                                ) {
+                                    AsyncImage(
+                                        model = item.imageUrl.split(",").firstOrNull(),
+                                        contentDescription = "상품 이미지",
+                                        modifier = Modifier
+                                            .defaultMinSize(150.dp, 230.dp)
+                                            .fillMaxWidth(),
+                                        contentScale = ContentScale.Crop,
+                                        alignment = Alignment.Center
+                                    )
+
+                                    // 시간 표시 추가
+                                    Text(
+                                        text = getTimeAgo(item.createdAt),
+                                        color = Color.Gray,
+                                        fontSize = 12.sp,
+                                        modifier = Modifier
+                                            .align(Alignment.TopStart)
+                                            .padding(8.dp)
+                                            .background(
+                                                color = Color.White.copy(alpha = 0.7f),
+                                                shape = MaterialTheme.shapes.small
+                                            )
+                                            .padding(4.dp)
+                                    )
+                                }
+
+                                Spacer(modifier = Modifier.height(8.dp))
                                 Text(item.title, fontWeight = FontWeight.Bold)
                                 Text(item.brandCategory)
                                 Text(item.effecterType)
@@ -129,7 +157,6 @@ fun ItemBord(
                                                 .document("${currentUserId}_${item.id}")
 
                                             if (isFavorite) {
-                                                // 찜 해제
                                                 favoriteRef.delete()
                                                     .addOnSuccessListener {
                                                         isFavorite = false
@@ -137,7 +164,6 @@ fun ItemBord(
                                                         Toast.makeText(context, "찜 목록에서 제거되었습니다", Toast.LENGTH_SHORT).show()
                                                     }
                                             } else {
-                                                // 찜하기
                                                 val favorite = hashMapOf(
                                                     "userId" to currentUserId,
                                                     "itemId" to item.id,

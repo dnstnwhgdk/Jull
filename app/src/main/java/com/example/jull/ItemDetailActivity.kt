@@ -17,6 +17,8 @@ import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.foundation.verticalScroll
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.filled.ArrowBack
+import androidx.compose.material.icons.filled.Favorite
+import androidx.compose.material.icons.outlined.FavoriteBorder
 import androidx.compose.material3.*
 import androidx.compose.runtime.*
 import androidx.compose.ui.Alignment
@@ -33,7 +35,8 @@ import androidx.navigation.compose.rememberNavController
 import coil.compose.AsyncImage
 import com.google.firebase.auth.FirebaseAuth
 import com.google.firebase.firestore.FirebaseFirestore
-import java.util.Date
+import java.text.SimpleDateFormat
+import java.util.*
 
 class ItemDetailActivity : ComponentActivity() {
     override fun onCreate(savedInstanceState: Bundle?) {
@@ -46,20 +49,42 @@ class ItemDetailActivity : ComponentActivity() {
         val effecterType = intent.getStringExtra("effecterType") ?: ""
         val description = intent.getStringExtra("description") ?: ""
         val sellerId = intent.getStringExtra("sellerId") ?: ""
-        val itemId = intent.getStringExtra("itemId") ?: ""
-        val createdAt = intent.getStringExtra("createdAt") ?: ""
+        val itemId = intent.getStringExtra("id") ?: ""
+        val createdAt = (intent.getSerializableExtra("createdAt") as? Date) ?: Date()
 
         setContent {
-            CppNavigation(imageUrl, title, price, brandCategory, effecterType, description, sellerId,onBackPressed = {finish()})
+            CppNavigation(
+                imageUrl = imageUrl,
+                title = title,
+                price = price,
+                brandCategory = brandCategory,
+                effecterType = effecterType,
+                description = description,
+                sellerId = sellerId,
+                itemId = itemId,
+                createdAt = createdAt,
+                onBackPressed = { finish() }
+            )
         }
     }
 }
+
 @Composable
-fun CppNavigation(imageUrl: String, title: String, price: String, brandCategory: String, effecterType: String, description: String, sellerId: String,onBackPressed: () ->Unit) {
+fun CppNavigation(
+    imageUrl: String,
+    title: String,
+    price: String,
+    brandCategory: String,
+    effecterType: String,
+    description: String,
+    sellerId: String,
+    itemId: String,
+    createdAt: Date,
+    onBackPressed: () -> Unit
+) {
     val navController = rememberNavController()
 
     NavHost(navController = navController, startDestination = "itemDetail") {
-        // 상품 상세 화면 라우트
         composable("itemDetail") {
             ItemDetailScreen(
                 imageUrl = imageUrl,
@@ -69,20 +94,22 @@ fun CppNavigation(imageUrl: String, title: String, price: String, brandCategory:
                 effecterType = effecterType,
                 description = description,
                 sellerId = sellerId,
-                onBackPressed  = onBackPressed,
+                itemId = itemId,
+                createdAt = createdAt,
+                onBackPressed = onBackPressed,
                 onChatNavigate = { chatRoomId ->
                     navController.navigate("chat/$chatRoomId")
-                },
+                }
             )
         }
 
-        // 채팅 화면 라우트
         composable("chat/{chatRoomId}") { backStackEntry ->
             val chatRoomId = backStackEntry.arguments?.getString("chatRoomId") ?: ""
             ChatScreen(chatRoomId)
         }
     }
 }
+
 @OptIn(ExperimentalFoundationApi::class, ExperimentalMaterial3Api::class)
 @Composable
 fun ItemDetailScreen(
@@ -93,6 +120,8 @@ fun ItemDetailScreen(
     effecterType: String,
     description: String,
     sellerId: String,
+    itemId: String,
+    createdAt: Date,
     onBackPressed: () -> Unit,
     viewModel: ItemDetailViewModel = androidx.lifecycle.viewmodel.compose.viewModel(),
     onChatNavigate: (String) -> Unit
@@ -102,7 +131,26 @@ fun ItemDetailScreen(
     val currentUserId = FirebaseAuth.getInstance().currentUser?.uid
     val context = LocalContext.current
 
+    var isFavorite by remember { mutableStateOf(false) }
+    var favoriteCount by remember { mutableStateOf(0) }
 
+    LaunchedEffect(Unit) {
+        if (currentUserId != null) {
+            FirebaseFirestore.getInstance()
+                .collection("favorites")
+                .document("${currentUserId}_$itemId")
+                .addSnapshotListener { snapshot, _ ->
+                    isFavorite = snapshot?.exists() == true
+                }
+
+            FirebaseFirestore.getInstance()
+                .collection("favorites")
+                .whereEqualTo("itemId", itemId)
+                .addSnapshotListener { snapshot, _ ->
+                    favoriteCount = snapshot?.documents?.size ?: 0
+                }
+        }
+    }
 
     Scaffold(
         topBar = {
@@ -111,6 +159,52 @@ fun ItemDetailScreen(
                 navigationIcon = {
                     IconButton(onClick = onBackPressed) {
                         Icon(Icons.Default.ArrowBack, contentDescription = "뒤로가기")
+                    }
+                },
+                actions = {
+                    Row(
+                        verticalAlignment = Alignment.CenterVertically
+                    ) {
+                        Text(
+                            text = favoriteCount.toString(),
+                            color = Color.Gray,
+                            fontSize = 14.sp,
+                            modifier = Modifier.padding(end = 4.dp)
+                        )
+                        IconButton(
+                            onClick = {
+                                if (currentUserId != null) {
+                                    val favoriteRef = FirebaseFirestore.getInstance()
+                                        .collection("favorites")
+                                        .document("${currentUserId}_$itemId")
+
+                                    if (isFavorite) {
+                                        favoriteRef.delete()
+                                            .addOnSuccessListener {
+                                                Toast.makeText(context, "찜 목록에서 제거되었습니다", Toast.LENGTH_SHORT).show()
+                                            }
+                                    } else {
+                                        val favorite = hashMapOf(
+                                            "userId" to currentUserId,
+                                            "itemId" to itemId,
+                                            "createdAt" to Date()
+                                        )
+                                        favoriteRef.set(favorite)
+                                            .addOnSuccessListener {
+                                                Toast.makeText(context, "찜 목록에 추가되었습니다", Toast.LENGTH_SHORT).show()
+                                            }
+                                    }
+                                } else {
+                                    Toast.makeText(context, "로그인이 필요합니다", Toast.LENGTH_SHORT).show()
+                                }
+                            }
+                        ) {
+                            Icon(
+                                imageVector = if (isFavorite) Icons.Filled.Favorite else Icons.Outlined.FavoriteBorder,
+                                contentDescription = "찜하기",
+                                tint = if (isFavorite) Color.Red else Color.Gray
+                            )
+                        }
                     }
                 }
             )
@@ -127,7 +221,6 @@ fun ItemDetailScreen(
                     .fillMaxWidth()
                     .aspectRatio(1f)
             ) {
-                // 이미지 페이저
                 HorizontalPager(
                     state = pagerState,
                     modifier = Modifier.fillMaxSize()
@@ -140,7 +233,6 @@ fun ItemDetailScreen(
                     )
                 }
 
-                // 페이지 인디케이터
                 if (imageUrls.size > 1) {
                     Box(
                         modifier = Modifier
@@ -173,25 +265,34 @@ fun ItemDetailScreen(
                 }
             }
 
-            // 상품 정보
             Column(
                 modifier = Modifier
                     .fillMaxWidth()
                     .padding(16.dp)
             ) {
-                // 브랜드 카테고리 표시
-                Text(
-                    text = brandCategory,
-                    fontSize = 14.sp,
-                    color = Color.Gray
-                )
-
-                // 이펙터 유형 표시
-                Text(
-                    text = effecterType,
-                    fontSize = 14.sp,
-                    color = Color.Gray
-                )
+                Row(
+                    modifier = Modifier.fillMaxWidth(),
+                    horizontalArrangement = Arrangement.SpaceBetween
+                ) {
+                    Column {
+                        Text(
+                            text = brandCategory,
+                            fontSize = 14.sp,
+                            color = Color.Gray
+                        )
+                        Text(
+                            text = effecterType,
+                            fontSize = 14.sp,
+                            color = Color.Gray
+                        )
+                    }
+                    Text(
+                        text = SimpleDateFormat("yyyy.MM.dd HH:mm", Locale.getDefault())
+                            .format(createdAt),
+                        fontSize = 14.sp,
+                        color = Color.Gray
+                    )
+                }
 
                 Spacer(modifier = Modifier.height(8.dp))
 
@@ -223,12 +324,9 @@ fun ItemDetailScreen(
 
                 Spacer(modifier = Modifier.height(24.dp))
 
-                // 버튼 영역
                 if (currentUserId == sellerId) {
-                    // 판매자가 자신의 상품을 볼 때
                     Button(
                         onClick = {
-                            // 끌어올리기 기능 구현
                             val firestore = FirebaseFirestore.getInstance()
                             firestore.collection("items")
                                 .whereEqualTo("sellerId", sellerId)
@@ -255,22 +353,20 @@ fun ItemDetailScreen(
                         Text("물건 끌어올리기")
                     }
                 } else {
-                    // 다른 사용자가 상품을 볼 때
                     Button(
                         onClick = {
                             viewModel.findOrCreateChatRoom(
-                                itemId = title, // itemId가 필요하므로 title 대체 가능
+                                itemId = itemId,
                                 sellerId = sellerId,
-                                buyerId = currentUserId ?:"",
+                                buyerId = currentUserId ?: "",
                                 onChatRoomFound = { chatRoomId ->
-                                    Toast.makeText(context, "채팅방 이동: $chatRoomId", Toast.LENGTH_SHORT).show()
+                                    Toast.makeText(context, "채팅방으로 이동합니다", Toast.LENGTH_SHORT).show()
                                     onChatNavigate(chatRoomId)
                                 },
                                 onError = { exception ->
                                     Toast.makeText(context, "채팅방 생성 오류: ${exception.message}", Toast.LENGTH_SHORT).show()
                                 }
                             )
-
                         },
                         modifier = Modifier
                             .fillMaxWidth()
