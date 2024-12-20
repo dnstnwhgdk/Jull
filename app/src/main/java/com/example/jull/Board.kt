@@ -1,6 +1,7 @@
 package com.example.jull
 
 import android.content.Intent
+import android.widget.Toast
 import androidx.compose.foundation.clickable
 import androidx.compose.foundation.layout.*
 import androidx.compose.foundation.lazy.LazyColumn
@@ -25,6 +26,8 @@ import java.util.*
 @Composable
 fun Board() {
     var posts by remember { mutableStateOf<List<Post>>(emptyList()) }
+    var displayedPosts by remember { mutableStateOf<List<Post>>(emptyList()) }  // 검색 결과를 표시할 리스트
+    var searchText by remember { mutableStateOf("") }  // 검색어
     var isLoading by remember { mutableStateOf(true) }
     val context = LocalContext.current
 
@@ -46,6 +49,7 @@ fun Board() {
                             null
                         }
                     }
+                    displayedPosts = posts  // 초기에는 모든 게시글 표시
                 }
                 isLoading = false
             }
@@ -53,12 +57,59 @@ fun Board() {
 
     Scaffold(
         topBar = {
-            TopAppBar(
-                title = { Text("게시판") },
-                colors = TopAppBarDefaults.topAppBarColors(
-                    containerColor = MaterialTheme.colorScheme.background
+            Column {
+                TopAppBar(
+                    title = { Text("게시판") },
+                    actions = {
+                        // 검색 영역
+                        Row(
+                            verticalAlignment = Alignment.CenterVertically,
+                            modifier = Modifier.padding(end = 8.dp)
+                        ) {
+                            OutlinedTextField(
+                                value = searchText,
+                                onValueChange = { searchText = it },
+                                placeholder = { Text("검색어 입력") },
+                                singleLine = true,
+                                modifier = Modifier
+                                    .width(200.dp)
+                                    .padding(end = 8.dp),
+                                textStyle = LocalTextStyle.current.copy(fontSize = 14.sp)
+                            )
+                            // Board.kt의 검색 버튼 부분을 수정
+                            Button(
+                                onClick = {
+                                    if (searchText.length < 2) {
+                                        Toast.makeText(
+                                            context,
+                                            "검색어는 2글자 이상 입력해주세요",
+                                            Toast.LENGTH_SHORT
+                                        ).show()
+                                        displayedPosts = posts  // 2글자 미만일 경우 전체 게시글 표시
+                                    } else {
+                                        displayedPosts = posts.filter { post ->
+                                            post.title.contains(searchText, ignoreCase = true)
+                                        }
+                                        if (displayedPosts.isEmpty()) {
+                                            Toast.makeText(
+                                                context,
+                                                "검색 결과가 없습니다",
+                                                Toast.LENGTH_SHORT
+                                            ).show()
+                                        }
+                                    }
+                                },
+                                colors = ButtonDefaults.buttonColors(containerColor = Color.Black)
+                            ) {
+                                Text("검색")
+                            }
+                        }
+                    },
+                    colors = TopAppBarDefaults.topAppBarColors(
+                        containerColor = MaterialTheme.colorScheme.background
+                    )
                 )
-            )
+            }
         },
         floatingActionButton = {
             FloatingActionButton(
@@ -82,19 +133,22 @@ fun Board() {
                     CircularProgressIndicator()
                 }
             }
-            posts.isEmpty() -> {
+            displayedPosts.isEmpty() -> {
                 Box(
                     modifier = Modifier.fillMaxSize(),
                     contentAlignment = Alignment.Center
                 ) {
-                    Text("등록된 게시글이 없습니다")
+                    Text(
+                        if (searchText.isBlank()) "등록된 게시글이 없습니다"
+                        else "검색 결과가 없습니다"
+                    )
                 }
             }
             else -> {
                 LazyColumn(
                     modifier = Modifier.padding(padding)
                 ) {
-                    items(posts) { post ->
+                    items(displayedPosts) { post ->
                         PostItem(
                             post = post,
                             onPostClick = {
