@@ -2,19 +2,21 @@ import androidx.lifecycle.ViewModel
 import com.example.jull.ChatRoom
 import com.example.jull.Message
 import com.google.firebase.auth.FirebaseAuth
+import com.google.firebase.database.FirebaseDatabase
 import com.google.firebase.firestore.FirebaseFirestore
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.StateFlow
 
 class ChatRoomsViewModel : ViewModel() {
     private val firestore = FirebaseFirestore.getInstance()
+    private val realtimeDatabase = FirebaseDatabase.getInstance().reference
     private val currentUserId = FirebaseAuth.getInstance().currentUser?.uid
 
     private val _chatRooms = MutableStateFlow<List<ChatRoom>>(emptyList())
     val chatRooms: StateFlow<List<ChatRoom>> = _chatRooms
 
-    private val _lastMessages = MutableStateFlow<Map<String, Pair<Message, String>>>(emptyMap())
-    val lastMessages: StateFlow<Map<String, Pair<Message, String>>> = _lastMessages
+    private val _lastMessages = MutableStateFlow<Map<String, Triple<Message, String, String>>>(emptyMap())
+    val lastMessages: StateFlow<Map<String, Triple<Message, String, String>>> = _lastMessages
 
     init {
         loadChatRooms()
@@ -45,15 +47,15 @@ class ChatRoomsViewModel : ViewModel() {
                             val combinedRooms = (buyerRooms + sellerRooms).distinctBy { it.id }
                             _chatRooms.value = combinedRooms
 
-                            // Load last messages and nicknames
-                            loadLastMessages(combinedRooms.map { it.id }, userId)
+                            // Load last messages and seller nicknames
+                            loadLastMessagesAndNicknames(combinedRooms.map { it.id })
                         }
                 }
         }
     }
 
-    private fun loadLastMessages(chatRoomIds: List<String>, currentUserId: String) {
-        val messagesMap = mutableMapOf<String, Pair<Message, String>>()
+    private fun loadLastMessagesAndNicknames(chatRoomIds: List<String>) {
+        val messagesMap = mutableMapOf<String, Triple<Message, String, String>>()
 
         chatRoomIds.forEach { chatRoomId ->
             firestore.collection("chatRooms")
@@ -68,19 +70,14 @@ class ChatRoomsViewModel : ViewModel() {
                             .document(chatRoomId)
                             .get()
                             .addOnSuccessListener { chatRoomDoc ->
-                                val otherUserId =
-                                    if (chatRoomDoc.getString("buyerId") == currentUserId) {
-                                        chatRoomDoc.getString("sellerId")
-                                    } else {
-                                        chatRoomDoc.getString("buyerId")
-                                    }
+                                val sellerId = chatRoomDoc.getString("sellerId") ?: "Unknown"
 
-                                firestore.collection("users")
-                                    .document(otherUserId ?: "")
+                                // Realtime Database에서 판매자 닉네임 가져오기
+                                realtimeDatabase.child("users").child(sellerId).child("nickname")
                                     .get()
-                                    .addOnSuccessListener { userDoc ->
-                                        val nickname = userDoc.getString("nickname") ?: "알 수 없음"
-                                        messagesMap[chatRoomId] = lastMessage to nickname
+                                    .addOnSuccessListener { dataSnapshot ->
+                                        val sellerNickname = dataSnapshot.getValue(String::class.java) ?: "알 수 없음"
+                                        messagesMap[chatRoomId] = Triple(lastMessage, sellerNickname, sellerId)
                                         _lastMessages.value = messagesMap.toMap()
                                     }
                             }

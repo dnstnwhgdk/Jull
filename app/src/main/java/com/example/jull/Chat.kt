@@ -50,7 +50,7 @@ fun ChatRoomsScreen(
 
             ChatRoomItem(
                 chatRoom = chatRoom,
-                nickname = nickname,
+                nickname = nickname, // 판매자 닉네임 전달
                 lastMessage = lastMessage,
                 lastMessageTime = lastMessageTime,
                 onClick = { onChatRoomClick(chatRoom.id) }
@@ -58,6 +58,7 @@ fun ChatRoomsScreen(
         }
     }
 }
+
 
 
 @Composable
@@ -96,9 +97,9 @@ fun ChatRoomItem(
                     .padding(vertical = 4.dp),
                 verticalArrangement = Arrangement.spacedBy(8.dp)
             ) {
-                // 상대방 닉네임
+                // 판매자 닉네임
                 Text(
-                    text = "닉네임: $nickname",
+                    text = "판매자: $nickname",
                     style = MaterialTheme.typography.bodyLarge,
                     fontWeight = FontWeight.Bold,
                     color = MaterialTheme.colorScheme.onSurface
@@ -122,4 +123,5 @@ fun ChatRoomItem(
         }
     }
 }
+
 

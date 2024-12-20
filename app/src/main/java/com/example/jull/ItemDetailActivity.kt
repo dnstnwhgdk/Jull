@@ -1,5 +1,6 @@
 package com.example.jull
 
+import ChatScreen
 import ItemDetailViewModel
 import android.os.Bundle
 import android.widget.Toast
@@ -128,7 +129,7 @@ fun CppNavigation(
 
         composable("chat/{chatRoomId}") { backStackEntry ->
             val chatRoomId = backStackEntry.arguments?.getString("chatRoomId") ?: ""
-            ChatScreen(chatRoomId)
+            ChatScreen(chatRoomId, onBackPressed)
         }
     }
 }
