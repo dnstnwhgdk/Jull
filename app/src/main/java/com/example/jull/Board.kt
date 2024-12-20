@@ -127,27 +127,17 @@ fun PostItem(
                 .padding(16.dp)
                 .fillMaxWidth()
         ) {
-            Text(
-                text = post.title,
-                fontSize = 18.sp,
-                fontWeight = FontWeight.Bold
-            )
-            Spacer(modifier = Modifier.height(8.dp))
-            Text(
-                text = post.content,
-                maxLines = 2,
-                fontSize = 14.sp,
-                color = Color.Gray
-            )
-            Spacer(modifier = Modifier.height(8.dp))
             Row(
                 modifier = Modifier.fillMaxWidth(),
-                horizontalArrangement = Arrangement.SpaceBetween
+                horizontalArrangement = Arrangement.SpaceBetween,
+                verticalAlignment = Alignment.CenterVertically
             ) {
+                // 닉네임 표시 부분을 더 강조하여 수정
                 Text(
                     text = post.authorName,
-                    fontSize = 12.sp,
-                    color = Color.Gray
+                    fontSize = 14.sp,
+                    fontWeight = FontWeight.Bold,  // 글씨를 굵게
+                    color = Color.Black  // 색상을 검정으로 변경
                 )
                 Text(
                     text = SimpleDateFormat("yyyy.MM.dd HH:mm", Locale.getDefault())
@@ -156,7 +146,26 @@ fun PostItem(
                     color = Color.Gray
                 )
             }
-            Spacer(modifier = Modifier.height(4.dp))
+
+            Spacer(modifier = Modifier.height(8.dp))
+
+            Text(
+                text = post.title,
+                fontSize = 18.sp,
+                fontWeight = FontWeight.Bold
+            )
+
+            Spacer(modifier = Modifier.height(8.dp))
+
+            Text(
+                text = post.content,
+                maxLines = 2,
+                fontSize = 14.sp,
+                color = Color.Gray
+            )
+
+            Spacer(modifier = Modifier.height(8.dp))
+
             Row(
                 modifier = Modifier.fillMaxWidth(),
                 horizontalArrangement = Arrangement.End

@@ -2,6 +2,7 @@ package com.example.jull
 
 import android.content.Intent
 import android.util.Log
+import androidx.compose.foundation.clickable
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.padding
 import androidx.compose.material3.ExperimentalMaterial3Api
@@ -32,12 +33,26 @@ import com.google.firebase.firestore.FirebaseFirestore
 import com.google.firebase.firestore.Query
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.fillMaxSize
+import androidx.compose.foundation.lazy.LazyColumn
+import androidx.compose.ui.text.font.FontWeight
+import androidx.compose.ui.unit.sp
 import com.google.firebase.firestore.FieldPath
+import androidx.compose.foundation.lazy.items
+import androidx.compose.material3.ScrollableTabRow
+import java.text.SimpleDateFormat
+import java.util.Locale
+import androidx.compose.material3.Card
+import androidx.compose.ui.graphics.Color
+import androidx.compose.material3.MaterialTheme
+import androidx.compose.foundation.layout.fillMaxWidth
+import androidx.compose.material3.TabRowDefaults
+import androidx.compose.foundation.layout.height
+import androidx.compose.material3.TabRowDefaults.tabIndicatorOffset
 
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
 fun My() {
-    val tabs = listOf("내 정보", "나의 판매", "찜 목록", "알림")
+    val tabs = listOf("내 정보", "나의 판매", "찜 목록", "알림", "내가 쓴 글", "내가 쓴 댓글")
     var selectedTabIndex by remember { mutableStateOf(0) }
     var userInfoList by remember { mutableStateOf<List<UserInfo>>(emptyList()) }
 
@@ -96,27 +111,76 @@ fun My() {
     Scaffold(
         topBar = {
             TopAppBar(
-                title = { Text("마이페이지") }
+                title = {
+                    Text(
+                        "마이페이지",
+                        style = MaterialTheme.typography.titleLarge,  // titleLarge 유지
+                        modifier = Modifier.padding(start = 4.dp, bottom = 4.dp)  // 하단 패딩 추가
+                    )
+                },
+                modifier = Modifier
+                    .fillMaxWidth()
+                    .height(56.dp)  // TopAppBar 높이를 56.dp로 증가
             )
         }
     ) { paddingValues ->
-        Column(modifier = Modifier.padding(paddingValues)) {
-            TabRow(selectedTabIndex = selectedTabIndex) {
+        Column(
+            modifier = Modifier
+                .padding(paddingValues)
+                .fillMaxSize()
+        ) {
+            ScrollableTabRow(
+                selectedTabIndex = selectedTabIndex,
+                edgePadding = 4.dp,  // 가장자리 패딩 축소
+                containerColor = MaterialTheme.colorScheme.background,
+                contentColor = MaterialTheme.colorScheme.primary,
+                modifier = Modifier
+                    .fillMaxWidth()
+                    .height(45.dp),  // 높이 약간 증가
+                indicator = { tabPositions ->
+                    TabRowDefaults.Indicator(
+                        modifier = Modifier.tabIndicatorOffset(tabPositions[selectedTabIndex]),
+                        height = 2.dp,
+                        color = MaterialTheme.colorScheme.primary
+                    )
+                }
+            ) {
                 tabs.forEachIndexed { index, title ->
                     Tab(
                         selected = selectedTabIndex == index,
                         onClick = { selectedTabIndex = index },
-                        text = { Text(title) }
+                        modifier = Modifier
+                            .padding(horizontal = 6.dp, vertical = 0.dp)  // 좌우 패딩 약간 증가
+                            .height(45.dp),
+                        text = {
+                            Text(
+                                text = title,
+                                style = MaterialTheme.typography.bodyMedium,  // 글자 크기 조정
+                                color = if (selectedTabIndex == index) {
+                                    MaterialTheme.colorScheme.primary
+                                } else {
+                                    MaterialTheme.colorScheme.onSurface.copy(alpha = 0.6f)
+                                },
+                                modifier = Modifier.padding(vertical = 4.dp)
+                            )
+                        }
                     )
                 }
             }
 
-            Box(modifier = Modifier.fillMaxSize()) {
+            // 콘텐츠 영역
+            Box(
+                modifier = Modifier
+                    .fillMaxSize()
+                    .padding(horizontal = 16.dp)
+            ) {
                 when (selectedTabIndex) {
                     0 -> ProfileScreen(userInfoList)
                     1 -> MyItem()
                     2 -> Wishlist()
                     3 -> NotificationScreen()
+                    4 -> MyPosts()
+                    5 -> MyComments()
                 }
             }
         }
@@ -278,3 +342,184 @@ fun Wishlist() {
         }
     }
 }
+
+@Composable
+fun MyPosts() {
+    var posts by remember { mutableStateOf<List<Post>>(emptyList()) }
+    var isLoading by remember { mutableStateOf(true) }
+    val currentUserId = FirebaseAuth.getInstance().currentUser?.uid
+    val context = LocalContext.current
+
+    LaunchedEffect(Unit) {
+        if (currentUserId != null) {
+            val firestore = FirebaseFirestore.getInstance()
+            firestore.collection("posts")
+                .whereEqualTo("userId", currentUserId)
+                .orderBy("createdAt", Query.Direction.DESCENDING)
+                .addSnapshotListener { snapshot, e ->
+                    if (e != null) {
+                        isLoading = false
+                        return@addSnapshotListener
+                    }
+
+                    if (snapshot != null) {
+                        posts = snapshot.documents.mapNotNull { doc ->
+                            try {
+                                Post.fromMap(doc.id, doc.data ?: emptyMap())
+                            } catch (e: Exception) {
+                                null
+                            }
+                        }
+                    }
+                    isLoading = false
+                }
+        } else {
+            isLoading = false
+        }
+    }
+
+    Box(modifier = Modifier.fillMaxSize()) {
+        when {
+            isLoading -> {
+                CircularProgressIndicator(
+                    modifier = Modifier.align(Alignment.Center)
+                )
+            }
+            posts.isEmpty() -> {
+                Text(
+                    "작성한 게시글이 없습니다",
+                    modifier = Modifier.align(Alignment.Center)
+                )
+            }
+            else -> {
+                LazyColumn {
+                    items(posts) { post ->
+                        PostItem(
+                            post = post,
+                            onPostClick = {
+                                val intent = Intent(context, PostDetailActivity::class.java).apply {
+                                    putExtra("postId", post.id)
+                                }
+                                context.startActivity(intent)
+                            }
+                        )
+                    }
+                }
+            }
+        }
+    }
+}
+
+@Composable
+fun MyComments() {
+    var comments by remember { mutableStateOf<List<CommentWithPost>>(emptyList()) }
+    var isLoading by remember { mutableStateOf(true) }
+    val currentUserId = FirebaseAuth.getInstance().currentUser?.uid
+    val context = LocalContext.current
+    val firestore = FirebaseFirestore.getInstance()
+
+    LaunchedEffect(Unit) {
+        if (currentUserId != null) {
+            firestore.collection("comments")
+                .whereEqualTo("userId", currentUserId)
+                .orderBy("createdAt", Query.Direction.DESCENDING)
+                .addSnapshotListener { snapshot, e ->
+                    if (e != null) {
+                        isLoading = false
+                        return@addSnapshotListener
+                    }
+
+                    if (snapshot != null) {
+                        val commentsList = snapshot.documents.mapNotNull { doc ->
+                            Comment.fromMap(doc.id, doc.data ?: emptyMap())
+                        }
+
+                        // comments 리스트 초기화
+                        comments = emptyList()
+
+                        // 각 댓글의 게시글 정보 가져오기
+                        commentsList.forEach { comment ->
+                            firestore.collection("posts")
+                                .document(comment.postId)
+                                .get()
+                                .addOnSuccessListener { postDoc ->
+                                    if (postDoc.exists()) {  // 게시글이 존재하는 경우에만 추가
+                                        val post = Post.fromMap(postDoc.id, postDoc.data ?: emptyMap())
+                                        comments = comments + CommentWithPost(comment, post)
+                                    } else {
+                                        // 게시글이 존재하지 않으면 해당 댓글도 삭제
+                                        firestore.collection("comments")
+                                            .whereEqualTo("postId", comment.postId)
+                                            .get()
+                                            .addOnSuccessListener { commentDocs ->
+                                                commentDocs.documents.forEach { commentDoc ->
+                                                    commentDoc.reference.delete()
+                                                }
+                                            }
+                                    }
+                                }
+                        }
+                    }
+                    isLoading = false
+                }
+        } else {
+            isLoading = false
+        }
+    }
+
+
+    Box(modifier = Modifier.fillMaxSize()) {
+        when {
+            isLoading -> {
+                CircularProgressIndicator(
+                    modifier = Modifier.align(Alignment.Center)
+                )
+            }
+            comments.isEmpty() -> {
+                Text(
+                    "작성한 댓글이 없습니다",
+                    modifier = Modifier.align(Alignment.Center)
+                )
+            }
+            else -> {
+                LazyColumn {
+                    items(comments) { commentWithPost ->
+                        Card(
+                            modifier = Modifier
+                                .fillMaxWidth()
+                                .padding(8.dp)
+                                .clickable {
+                                    val intent = Intent(context, PostDetailActivity::class.java).apply {
+                                        putExtra("postId", commentWithPost.post.id)
+                                    }
+                                    context.startActivity(intent)
+                                }
+                        ) {
+                            Column(modifier = Modifier.padding(16.dp)) {
+                                Text(
+                                    text = commentWithPost.post.title,
+                                    fontWeight = FontWeight.Bold
+                                )
+                                Spacer(modifier = Modifier.height(4.dp))
+                                Text(text = commentWithPost.comment.content)
+                                Spacer(modifier = Modifier.height(4.dp))
+                                Text(
+                                    text = SimpleDateFormat("yyyy.MM.dd HH:mm", Locale.getDefault())
+                                        .format(commentWithPost.comment.createdAt),
+                                    color = Color.Gray,
+                                    fontSize = 12.sp
+                                )
+                            }
+                        }
+                    }
+                }
+            }
+        }
+    }
+}
+
+// 댓글과 해당 게시글 정보를 함께 저장할 데이터 클래스
+data class CommentWithPost(
+    val comment: Comment,
+    val post: Post
+)

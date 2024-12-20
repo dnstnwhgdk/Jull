@@ -29,6 +29,7 @@ import com.google.firebase.firestore.Query
 import java.text.SimpleDateFormat
 import java.util.*
 import androidx.compose.material3.AlertDialog
+import com.google.firebase.database.FirebaseDatabase
 
 class PostDetailActivity : ComponentActivity() {
     override fun onCreate(savedInstanceState: Bundle?) {
@@ -256,7 +257,6 @@ fun PostDetailScreen(postId: String, onBack: () -> Unit) {
                     }
 
                     // 댓글 입력 부분
-                    // 댓글 입력 부분
                     item {
                         var commentText by remember { mutableStateOf("") }
                         var showCommentDeleteDialog by remember { mutableStateOf<String?>(null) }
@@ -287,29 +287,37 @@ fun PostDetailScreen(postId: String, onBack: () -> Unit) {
                                             return@Button
                                         }
 
-                                        firestore.collection("users")
-                                            .document(currentUserId)
+                                        // Firebase Realtime Database에서 닉네임 가져오기
+                                        FirebaseDatabase.getInstance().reference
+                                            .child("users")
+                                            .child(currentUserId)
                                             .get()
-                                            .addOnSuccessListener { document ->
-                                                val nickname = document.getString("nickname") ?: "익명"
+                                            .addOnSuccessListener { snapshot ->
+                                                val userNickname = snapshot.child("nickname").getValue(String::class.java)
+                                                if (userNickname != null) {
+                                                    val comment = Comment(
+                                                        postId = postId,
+                                                        userId = currentUserId,
+                                                        authorName = userNickname,
+                                                        content = commentText,
+                                                        createdAt = Date()
+                                                    )
 
-                                                val comment = Comment(
-                                                    postId = postId,
-                                                    userId = currentUserId,
-                                                    authorName = nickname,
-                                                    content = commentText,
-                                                    createdAt = Date()
-                                                )
-
-                                                firestore.collection("comments")
-                                                    .add(comment.toMap())
-                                                    .addOnSuccessListener {
-                                                        firestore.collection("posts")
-                                                            .document(postId)
-                                                            .update("commentCount", (post?.commentCount ?: 0) + 1)
-
-                                                        commentText = ""
-                                                    }
+                                                    firestore.collection("comments")
+                                                        .add(comment.toMap())
+                                                        .addOnSuccessListener {
+                                                            firestore.collection("posts")
+                                                                .document(postId)
+                                                                .update("commentCount", (post?.commentCount ?: 0) + 1)
+                                                            commentText = ""
+                                                        }
+                                                        .addOnFailureListener { e ->
+                                                            Toast.makeText(context, "댓글 작성 실패: ${e.message}", Toast.LENGTH_SHORT).show()
+                                                        }
+                                                }
+                                            }
+                                            .addOnFailureListener { e ->
+                                                Toast.makeText(context, "사용자 정보를 가져오는데 실패했습니다", Toast.LENGTH_SHORT).show()
                                             }
                                     },
                                     colors = ButtonDefaults.buttonColors(containerColor = Color.Black)
@@ -368,17 +376,32 @@ fun PostDetailScreen(postId: String, onBack: () -> Unit) {
                                         confirmButton = {
                                             TextButton(
                                                 onClick = {
+                                                    // 1. 먼저 해당 게시글의 모든 댓글을 삭제
                                                     firestore.collection("comments")
-                                                        .document(comment.id)
-                                                        .delete()
-                                                        .addOnSuccessListener {
+                                                        .whereEqualTo("postId", postId)
+                                                        .get()
+                                                        .addOnSuccessListener { comments ->
+                                                            // 모든 댓글 삭제
+                                                            comments.documents.forEach { comment ->
+                                                                firestore.collection("comments")
+                                                                    .document(comment.id)
+                                                                    .delete()
+                                                            }
+
+                                                            // 2. 게시글 삭제
                                                             firestore.collection("posts")
                                                                 .document(postId)
-                                                                .update("commentCount", (post?.commentCount ?: 1) - 1)
-                                                            Toast.makeText(context, "댓글이 삭제되었습니다", Toast.LENGTH_SHORT).show()
+                                                                .delete()
+                                                                .addOnSuccessListener {
+                                                                    Toast.makeText(context, "게시글이 삭제되었습니다", Toast.LENGTH_SHORT).show()
+                                                                    onBack()
+                                                                }
+                                                                .addOnFailureListener { e ->
+                                                                    Toast.makeText(context, "삭제 실패: ${e.message}", Toast.LENGTH_SHORT).show()
+                                                                }
                                                         }
                                                         .addOnFailureListener { e ->
-                                                            Toast.makeText(context, "삭제 실패: ${e.message}", Toast.LENGTH_SHORT).show()
+                                                            Toast.makeText(context, "댓글 삭제 실패: ${e.message}", Toast.LENGTH_SHORT).show()
                                                         }
                                                     showDeleteDialog = false
                                                 }

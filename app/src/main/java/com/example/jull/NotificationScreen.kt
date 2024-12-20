@@ -1,11 +1,14 @@
 package com.example.jull
 
+import android.content.Intent
+import androidx.compose.foundation.clickable
 import androidx.compose.foundation.layout.*
 import androidx.compose.foundation.lazy.LazyColumn
 import androidx.compose.foundation.lazy.items
 import androidx.compose.material3.*
 import androidx.compose.runtime.*
 import androidx.compose.ui.Modifier
+import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.unit.dp
 import com.google.firebase.auth.FirebaseAuth
 import com.google.firebase.firestore.FirebaseFirestore
@@ -20,6 +23,7 @@ fun NotificationScreen() {
     var notifications by remember { mutableStateOf<List<Item>>(emptyList()) }
     var keywords by remember { mutableStateOf<List<NotificationKeyword>>(emptyList()) }
     val currentUser = FirebaseAuth.getInstance().currentUser
+    val context = LocalContext.current
 
     LaunchedEffect(Unit) {
         if (currentUser != null) {
@@ -79,12 +83,28 @@ fun NotificationScreen() {
             style = MaterialTheme.typography.titleMedium,
             modifier = Modifier.padding(16.dp)
         )
+
         LazyColumn {
             items(notifications) { item ->
                 Card(
                     modifier = Modifier
                         .fillMaxWidth()
                         .padding(horizontal = 16.dp, vertical = 8.dp)
+                        // clickable 대신 Card를 클릭가능하게 만들기
+                        .clickable {
+                            // ItemDetailActivity로 이동하는 Intent 생성
+                            val intent = Intent(context, ItemDetailActivity::class.java).apply {
+                                putExtra("imageUrl", item.imageUrl)
+                                putExtra("title", item.title)
+                                putExtra("price", item.price)
+                                putExtra("brandCategory", item.brandCategory)
+                                putExtra("effecterType", item.effecterType)
+                                putExtra("description", item.description)
+                                putExtra("sellerId", item.sellerId)
+                                putExtra("id", item.id)
+                            }
+                            context.startActivity(intent)
+                        }
                 ) {
                     Column(modifier = Modifier.padding(16.dp)) {
                         Text(

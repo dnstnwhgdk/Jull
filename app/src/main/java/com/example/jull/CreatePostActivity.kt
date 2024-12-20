@@ -14,6 +14,7 @@ import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.unit.dp
 import com.google.firebase.auth.FirebaseAuth
+import com.google.firebase.database.FirebaseDatabase
 import com.google.firebase.firestore.FirebaseFirestore
 import java.util.*
 
@@ -56,31 +57,40 @@ fun CreatePostScreen(onBack: () -> Unit) {
                             val firestore = FirebaseFirestore.getInstance()
 
                             // 현재 사용자의 닉네임 가져오기
-                            firestore.collection("users")
-                                .document(currentUser?.uid ?: "")
-                                .get()
-                                .addOnSuccessListener { document ->
-                                    val nickname = document.getString("nickname") ?: "익명"
+                            if (currentUser != null) {
+                                // 먼저 Firebase Realtime Database에서 닉네임 가져오기 시도
+                                FirebaseDatabase.getInstance().reference
+                                    .child("users")
+                                    .child(currentUser.uid)
+                                    .get()
+                                    .addOnSuccessListener { snapshot ->
+                                        val userNickname = snapshot.child("nickname").getValue(String::class.java)
+                                        if (userNickname != null) {
+                                            val post = Post(
+                                                userId = currentUser.uid,
+                                                title = title,
+                                                content = content,
+                                                authorName = userNickname,
+                                                createdAt = Date()
+                                            )
 
-                                    val post = Post(
-                                        userId = currentUser?.uid ?: "",
-                                        title = title,
-                                        content = content,
-                                        authorName = nickname,
-                                        createdAt = Date()
-                                    )
-
-                                    firestore.collection("posts")
-                                        .add(post.toMap())
-                                        .addOnSuccessListener {
-                                            Toast.makeText(context, "게시글이 등록되었습니다", Toast.LENGTH_SHORT).show()
-                                            onBack()
+                                            firestore.collection("posts")
+                                                .add(post.toMap())
+                                                .addOnSuccessListener {
+                                                    Toast.makeText(context, "게시글이 등록되었습니다", Toast.LENGTH_SHORT).show()
+                                                    onBack()
+                                                }
+                                                .addOnFailureListener { e ->
+                                                    Toast.makeText(context, "등록 실패: ${e.message}", Toast.LENGTH_SHORT).show()
+                                                    isLoading = false
+                                                }
                                         }
-                                        .addOnFailureListener { e ->
-                                            Toast.makeText(context, "등록 실패: ${e.message}", Toast.LENGTH_SHORT).show()
-                                            isLoading = false
-                                        }
-                                }
+                                    }
+                                    .addOnFailureListener { e ->
+                                        Toast.makeText(context, "사용자 정보를 가져오는데 실패했습니다", Toast.LENGTH_SHORT).show()
+                                        isLoading = false
+                                    }
+                            }
                         },
                         enabled = !isLoading
                     ) {
