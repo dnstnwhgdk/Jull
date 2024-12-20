@@ -64,14 +64,14 @@ dependencies {
     implementation(libs.firebase.firestore)
     implementation(libs.firebase.auth)
     implementation(libs.coil.compose)
-    implementation ("androidx.compose.material:material-icons-extended:1.0.0")
+    implementation (libs.androidx.material.icons.extended)
     implementation(libs.firebase.database.ktx)
     implementation(libs.firebase.database)
     // Pager 의존성 추가
-    implementation("com.google.accompanist:accompanist-pager:0.32.0")
-    implementation("com.google.accompanist:accompanist-pager-indicators:0.32.0")
+    implementation(libs.accompanist.pager)
+    implementation(libs.accompanist.pager.indicators)
     // FlowLayout 의존성 추가
-    implementation("com.google.accompanist:accompanist-flowlayout:0.31.5-beta")
+    implementation(libs.accompanist.flowlayout)
 
     testImplementation(libs.junit)
     androidTestImplementation(libs.androidx.junit)
@@ -80,6 +80,6 @@ dependencies {
     androidTestImplementation(libs.androidx.ui.test.junit4)
     debugImplementation(libs.androidx.ui.tooling)
     debugImplementation(libs.androidx.ui.test.manifest)
-    implementation( "androidx.compose.material3:material3:1.2.0")
-    implementation("androidx.navigation:navigation-compose:2.6.0")
+    implementation( libs.material3)
+    implementation(libs.androidx.navigation.compose)
 }
