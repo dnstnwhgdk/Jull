@@ -85,4 +85,14 @@ class ChatRoomsViewModel : ViewModel() {
                 }
         }
     }
+    fun deleteChatRoom(chatRoomId: String) {
+        firestore.collection("chatRooms").document(chatRoomId)
+            .delete()
+            .addOnSuccessListener {
+                println("채팅방 삭제 완료")
+            }
+            .addOnFailureListener { e ->
+                println("채팅방 삭제 실패: ${e.message}")
+            }
+    }
 }

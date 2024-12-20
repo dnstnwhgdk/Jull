@@ -12,7 +12,6 @@ import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.height
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.size
-import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.foundation.text.KeyboardOptions
 import androidx.compose.material3.AlertDialog
@@ -60,15 +59,12 @@ fun ProfileScreen(userInfoList: List<UserInfo>) {
     ) {
         Box(
             modifier = Modifier
-                .size(80.dp)
-                .background(Color.Black, shape = CircleShape),
-            contentAlignment = Alignment.Center
         ) {
             Image(
-                painter = painterResource(id = R.drawable.ic_launcher_foreground),
+                painter = painterResource(id = R.drawable.eflog),
                 contentDescription = "Profile Image",
                 contentScale = ContentScale.Fit,
-                modifier = Modifier.size(50.dp)
+                modifier = Modifier.size(150.dp)
             )
         }
 

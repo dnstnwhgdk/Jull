@@ -1,4 +1,5 @@
 
+import androidx.activity.compose.LocalOnBackPressedDispatcherOwner
 import androidx.compose.foundation.background
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
@@ -13,9 +14,13 @@ import androidx.compose.foundation.layout.width
 import androidx.compose.foundation.lazy.LazyColumn
 import androidx.compose.foundation.lazy.items
 import androidx.compose.foundation.shape.RoundedCornerShape
+import androidx.compose.material.icons.Icons
+import androidx.compose.material.icons.filled.ArrowBack
 import androidx.compose.material3.Button
 import androidx.compose.material3.ButtonDefaults
 import androidx.compose.material3.ExperimentalMaterial3Api
+import androidx.compose.material3.Icon
+import androidx.compose.material3.IconButton
 import androidx.compose.material3.Scaffold
 import androidx.compose.material3.Text
 import androidx.compose.material3.TextField
@@ -53,6 +58,7 @@ fun ChatScreen(chatRoomId: String, onBackClick: () -> Unit) {
     val firestore = FirebaseFirestore.getInstance()
     val realtimeDatabase = FirebaseDatabase.getInstance().reference
     val currentUserId = FirebaseAuth.getInstance().currentUser?.uid ?: "UnknownUser"
+    val onBackPressedDispatcher = LocalOnBackPressedDispatcherOwner.current?.onBackPressedDispatcher
 
     val messages = remember { mutableStateListOf<Map<String, Any>>() }
     val scope = rememberCoroutineScope()
@@ -106,33 +112,34 @@ fun ChatScreen(chatRoomId: String, onBackClick: () -> Unit) {
     Scaffold(
         topBar = {
             TopAppBar(
-                title = {
-                    Text(
-                        text = "채팅방 - $sellerNickname",
-                        style = TextStyle(fontSize = 18.sp, fontWeight = FontWeight.Bold),
-                        textAlign = TextAlign.Center,
-                        modifier = Modifier.fillMaxWidth()
-                    )
-                },
-                navigationIcon = {
-                    Button(
-                        onClick = { onBackClick() },
-                        modifier = Modifier
-                            .padding(8.dp)
-                            .size(36.dp),
-                        colors = ButtonDefaults.buttonColors(
-                            containerColor = Color.Black,
-                            contentColor = Color.White
-                        )
-                    ) {
-                        Text("←", style = TextStyle(fontSize = 16.sp, fontWeight = FontWeight.Bold))
-                    }
-                },
                 colors = TopAppBarDefaults.mediumTopAppBarColors(
                     containerColor = Color.White
-                )
+                ),
+                title = {
+                    Box(
+                        modifier = Modifier.fillMaxWidth(),
+                        contentAlignment = Alignment.Center // 중앙 정렬
+                    ) {
+                        Text(
+                            text = sellerNickname,
+                            style = TextStyle(fontSize = 18.sp, fontWeight = FontWeight.Bold),
+                            textAlign = TextAlign.Center
+                        )
+                    }
+                },
+                navigationIcon = {
+                    IconButton(onClick = { onBackPressedDispatcher?.onBackPressed() }) {
+                        Icon(
+                            imageVector = Icons.Filled.ArrowBack,
+                            contentDescription = "Back",
+                            tint = Color.Black // 화살표 색상
+                        )
+                    }
+                },
+                actions = { Spacer(modifier = Modifier.size(48.dp)) } // 오른쪽 공간 확보
             )
         }
+
     ) { innerPadding ->
         Column(
             modifier = Modifier
