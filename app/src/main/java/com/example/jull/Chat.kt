@@ -1,76 +1,125 @@
+
 import androidx.compose.foundation.clickable
-import androidx.compose.foundation.layout.*
+import androidx.compose.foundation.layout.Arrangement
+import androidx.compose.foundation.layout.Column
+import androidx.compose.foundation.layout.PaddingValues
+import androidx.compose.foundation.layout.Row
+import androidx.compose.foundation.layout.defaultMinSize
+import androidx.compose.foundation.layout.fillMaxSize
+import androidx.compose.foundation.layout.fillMaxWidth
+import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.lazy.LazyColumn
 import androidx.compose.foundation.lazy.items
-import androidx.compose.material3.*
-import androidx.compose.runtime.*
+import androidx.compose.material3.Card
+import androidx.compose.material3.CardDefaults
+import androidx.compose.material3.MaterialTheme
+import androidx.compose.material3.Text
+import androidx.compose.runtime.Composable
+import androidx.compose.runtime.collectAsState
+import androidx.compose.runtime.getValue
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
 import androidx.lifecycle.viewmodel.compose.viewModel
+import coil.compose.AsyncImage
 import com.example.jull.ChatRoom
 import java.text.SimpleDateFormat
-import java.util.*
+import java.util.Date
+import java.util.Locale
 
 @Composable
 fun ChatRoomsScreen(
-    onChatRoomClick: (String) -> Unit, // 채팅방 클릭 시 동작
+    onChatRoomClick: (String) -> Unit,
     viewModel: ChatRoomsViewModel = viewModel()
 ) {
     val chatRooms by viewModel.chatRooms.collectAsState()
+    val lastMessages by viewModel.lastMessages.collectAsState()
 
-    Scaffold(
-        topBar = {
-            Text("채팅방 목록")
-        }
-    ) { padding ->
-        LazyColumn(
-            modifier = Modifier
-                .fillMaxSize()
-                .padding(padding),
-            contentPadding = PaddingValues(16.dp),
-            verticalArrangement = Arrangement.spacedBy(8.dp)
-        ) {
-            items(chatRooms) { chatRoom ->
-                ChatRoomItem(
-                    chatRoom = chatRoom,
-                    onClick = { onChatRoomClick(chatRoom.id) }
-                )
-            }
+    LazyColumn(
+        modifier = Modifier.fillMaxSize(),
+        contentPadding = PaddingValues(16.dp),
+        verticalArrangement = Arrangement.spacedBy(12.dp)
+    ) {
+        items(chatRooms) { chatRoom ->
+            val lastMessageData = lastMessages[chatRoom.id]
+            val lastMessage = lastMessageData?.first?.content ?: "메시지가 없습니다."
+            val nickname = lastMessageData?.second ?: "알 수 없음"
+            val lastMessageTime = lastMessageData?.first?.timestamp?.let {
+                SimpleDateFormat("yyyy-MM-dd HH:mm", Locale.getDefault()).format(Date(it))
+            } ?: "시간 정보 없음"
+
+            ChatRoomItem(
+                chatRoom = chatRoom,
+                nickname = nickname,
+                lastMessage = lastMessage,
+                lastMessageTime = lastMessageTime,
+                onClick = { onChatRoomClick(chatRoom.id) }
+            )
         }
     }
 }
 
+
 @Composable
 fun ChatRoomItem(
     chatRoom: ChatRoom,
+    nickname: String,
+    lastMessage: String,
+    lastMessageTime: String,
     onClick: () -> Unit
 ) {
     Card(
         modifier = Modifier
             .fillMaxWidth()
             .clickable(onClick = onClick),
-        shape = MaterialTheme.shapes.medium
+        shape = MaterialTheme.shapes.medium,
+        elevation = CardDefaults.cardElevation(4.dp)
     ) {
-        Column(
-            modifier = Modifier.padding(16.dp)
+        Row(
+            modifier = Modifier
+                .padding(16.dp)
+                .fillMaxWidth(),
+            horizontalArrangement = Arrangement.spacedBy(12.dp)
         ) {
-            Text(
-                text = "아이템 ID: ${chatRoom.itemId}",
-                style = MaterialTheme.typography.bodyLarge,
-                fontWeight = FontWeight.Bold
+            // 채팅방 이미지
+            AsyncImage(
+                model = chatRoom.imageUrl,
+                contentDescription = "채팅방 사진",
+                modifier = Modifier
+                    .defaultMinSize(80.dp, 80.dp)
+                    .fillMaxWidth(0.3f),
             )
-            Text(
-                text = chatRoom.lastMessage,
-                style = MaterialTheme.typography.bodyMedium,
-                color = MaterialTheme.colorScheme.onSurface.copy(alpha = 0.6f)
-            )
-            Text(
-                text = SimpleDateFormat("yyyy-MM-dd HH:mm", Locale.getDefault())
-                    .format(Date(chatRoom.timestamp)),
-                style = MaterialTheme.typography.bodySmall,
-                color = MaterialTheme.colorScheme.onSurface.copy(alpha = 0.4f)
-            )
+
+            Column(
+                modifier = Modifier
+                    .fillMaxWidth()
+                    .padding(vertical = 4.dp),
+                verticalArrangement = Arrangement.spacedBy(8.dp)
+            ) {
+                // 상대방 닉네임
+                Text(
+                    text = "닉네임: $nickname",
+                    style = MaterialTheme.typography.bodyLarge,
+                    fontWeight = FontWeight.Bold,
+                    color = MaterialTheme.colorScheme.onSurface
+                )
+
+                // 마지막 메시지
+                Text(
+                    text = lastMessage,
+                    style = MaterialTheme.typography.bodyMedium,
+                    color = MaterialTheme.colorScheme.onSurface.copy(alpha = 0.7f),
+                    maxLines = 1 // 한 줄만 표시
+                )
+
+                // 마지막 메시지 시간
+                Text(
+                    text = lastMessageTime,
+                    style = MaterialTheme.typography.bodySmall,
+                    color = MaterialTheme.colorScheme.onSurface.copy(alpha = 0.5f)
+                )
+            }
         }
     }
 }
+

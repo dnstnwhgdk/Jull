@@ -8,6 +8,7 @@ class ItemDetailViewModel : ViewModel() {
         itemId: String,
         sellerId: String,
         buyerId: String,
+        itemPhotoUrl: String,
         onChatRoomFound: (String) -> Unit,
         onError: (Exception) -> Unit
     ) {
@@ -22,20 +23,22 @@ class ItemDetailViewModel : ViewModel() {
             .addOnSuccessListener { querySnapshot ->
                 if (querySnapshot.isEmpty) {
                     // 채팅방이 없으면 새로 생성
+                    val currentTime = System.currentTimeMillis()
                     val newChatRoom = hashMapOf(
                         "itemId" to itemId,
                         "sellerId" to sellerId,
-                        "buyerId" to buyerId
+                        "buyerId" to buyerId,
+                        "itemPhotoUrl" to itemPhotoUrl, // 아이템 사진 추가
+                        "createdAt" to currentTime // 생성 시간 추가
                     )
                     chatRoomsRef.add(newChatRoom)
                         .addOnSuccessListener { documentReference ->
                             val chatRoomId = documentReference.id
 
-                            // 새로 생성된 채팅방의 messages 서브 컬렉션에 첫 메시지 추가
                             val welcomeMessage = hashMapOf(
                                 "senderId" to sellerId,
                                 "content" to "안녕하세요! 채팅을 시작해보세요.",
-                                "timestamp" to System.currentTimeMillis()
+                                "timestamp" to currentTime
                             )
                             firestore.collection("chatRooms")
                                 .document(chatRoomId)
