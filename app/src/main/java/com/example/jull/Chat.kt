@@ -4,10 +4,10 @@ import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.PaddingValues
 import androidx.compose.foundation.layout.Row
-import androidx.compose.foundation.layout.defaultMinSize
 import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.padding
+import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.lazy.LazyColumn
 import androidx.compose.foundation.lazy.items
 import androidx.compose.material3.Card
@@ -18,6 +18,7 @@ import androidx.compose.runtime.Composable
 import androidx.compose.runtime.collectAsState
 import androidx.compose.runtime.getValue
 import androidx.compose.ui.Modifier
+import androidx.compose.ui.draw.clip
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
 import androidx.lifecycle.viewmodel.compose.viewModel
@@ -82,13 +83,13 @@ fun ChatRoomItem(
                 .fillMaxWidth(),
             horizontalArrangement = Arrangement.spacedBy(12.dp)
         ) {
-            // 채팅방 이미지
+            // 고정 크기의 채팅방 이미지
             AsyncImage(
                 model = chatRoom.imageUrl,
                 contentDescription = "채팅방 사진",
                 modifier = Modifier
-                    .defaultMinSize(80.dp, 80.dp)
-                    .fillMaxWidth(0.3f),
+                    .size(80.dp) // 크기를 고정하여 일정하게 유지
+                    .clip(MaterialTheme.shapes.medium) // 이미지 모서리를 둥글게 설정 (선택 사항)
             )
 
             Column(
