@@ -291,6 +291,7 @@ fun Home() {
                             putExtra("sellerId", item.sellerId)
                             putExtra("id", item.id)
                             putExtra("createdAt", item.createdAt)
+                            putExtra("tradeType", item.tradeType)
                         }
                         context.startActivity(intent)
                     }

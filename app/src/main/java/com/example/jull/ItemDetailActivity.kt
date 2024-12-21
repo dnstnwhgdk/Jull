@@ -82,9 +82,8 @@ class ItemDetailActivity : ComponentActivity() {
         val description = intent.getStringExtra("description") ?: ""
         val sellerId = intent.getStringExtra("sellerId") ?: ""
         val itemId = intent.getStringExtra("id") ?: ""
+        val tradeType = intent.getStringExtra("tradeType") ?: "택배거래"  // 이 부분이 추가되어야 함
         val createdAt = (intent.getSerializableExtra("createdAt") as? Date) ?: Date()
-        val tradeType = intent.getStringExtra("tradeType") ?: "택배 거래"
-
 
         setContent {
             CppNavigation(
@@ -163,7 +162,7 @@ fun ItemDetailScreen(
     viewModel: ItemDetailViewModel = androidx.lifecycle.viewmodel.compose.viewModel(),
     onChatNavigate: (String) -> Unit,
     status: String = "판매중",
-    tradeType: String = "택배 거래"
+    tradeType: String
 ) {
     val imageUrls = remember(imageUrl) { imageUrl.split(",") }
     val pagerState = rememberPagerState { imageUrls.size }
@@ -340,7 +339,7 @@ fun ItemDetailScreen(
                         )
                         Text(  // 거래방식 표시 수정
                             text = when (tradeType) {
-                                "택배 거래" -> "택배 거래"
+                                "택배거래" -> "택배거래"
                                 "직거래" -> "직거래"
                                 "택배거래/직거래" -> "택배거래/직거래"
                                 else -> tradeType
@@ -362,7 +361,7 @@ fun ItemDetailScreen(
                 Spacer(modifier = Modifier.height(16.dp))
 
                 Text(
-                    text = price,
+                    text = if (price.endsWith("원")) price else price + "원",
                     fontSize = 20.sp,
                     fontWeight = FontWeight.Bold
                 )

@@ -15,7 +15,7 @@ data class Item(
     val description: String = "",
     val createdAt: Date = Date(),
     val status: String = "판매중",
-    val tradeType: String = "택배 거래" // 기본값을 "택배 거래"로 설정
+    val tradeType: String = "택배거래" // 기본값을 "택배거래"로 설정
 
 ) {
     companion object {
@@ -32,7 +32,7 @@ data class Item(
                 description = data["description"] as? String ?: "",
                 createdAt = (data["createdAt"] as? Timestamp)?.toDate() ?: Date(),
                 status = data["status"] as? String ?: "판매중",
-                tradeType = data["tradeType"] as? String ?: "택배 거래"
+                tradeType = data["tradeType"] as? String ?: "택배거래"
             )
         }
     }

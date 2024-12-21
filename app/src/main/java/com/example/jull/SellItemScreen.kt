@@ -76,7 +76,7 @@ fun SellItemPage() {
     val firestore = FirebaseFirestore.getInstance()
     val auth = FirebaseAuth.getInstance()
     var expanded by remember { mutableStateOf(false) }  // expanded 변수 추가
-    var selectedTradeType by remember { mutableStateOf("택배 거래") }
+    var selectedTradeType by remember { mutableStateOf("택배거래") }
 
 
     val imagePickerLauncher = rememberLauncherForActivityResult(
@@ -252,7 +252,7 @@ fun SellItemPage() {
                     expanded = expanded,
                     onDismissRequest = { expanded = false }
                 ) {
-                    listOf("택배 거래", "직거래", "택배거래/직거래").forEach { tradeType ->
+                    listOf("택배거래", "직거래", "택배거래/직거래").forEach { tradeType ->
                         DropdownMenuItem(
                             text = { Text(tradeType) },
                             onClick = {
@@ -336,7 +336,7 @@ fun SellItemPage() {
             OutlinedTextField(
                 value = price,
                 onValueChange = { price = it },
-                label = { Text("가격 입력") },
+                label = { Text("가격 입력 (원)") },
                 modifier = Modifier
                     .fillMaxWidth()
                     .padding(top = 8.dp),
@@ -402,7 +402,7 @@ fun SellItemPage() {
                                             subtitle = "",
                                             brandCategory = brandCategory,
                                             effecterType = effecterType,
-                                            price = price,
+                                            price = price + "원",
                                             description = description,
                                             createdAt = Date(),
                                             tradeType = selectedTradeType

@@ -91,7 +91,11 @@ fun ItemBord(
                         modifier = Modifier
                             .padding(8.dp)
                             .wrapContentSize()
-                            .clickable { onItemClick(item) }
+                            .clickable {
+                                onItemClick(item.copy(
+                                    tradeType = item.tradeType
+                                ))
+                            }
                     ) {
                         Box(
                             modifier = Modifier
@@ -151,7 +155,7 @@ fun ItemBord(
                                         Spacer(modifier = Modifier.width(4.dp))
                                         Text(
                                             text = when (item.tradeType) {
-                                                "택배 거래" -> "택"
+                                                "택배거래" -> "택"
                                                 "직거래" -> "직"
                                                 "택배거래/직거래" -> "택/직"
                                                 else -> ""
@@ -183,7 +187,10 @@ fun ItemBord(
                                 }
                                 Text(item.brandCategory)
                                 Text(item.effecterType)
-                                Text(item.price, fontWeight = FontWeight.Bold)
+                                Text(
+                                    if (item.price.endsWith("원")) item.price else item.price + "원",
+                                    fontWeight = FontWeight.Bold
+                                )
                             }
 
                             Row(
