@@ -3,12 +3,24 @@ package com.example.jull
 import android.content.Intent
 import android.util.Log
 import androidx.compose.foundation.clickable
+import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
+import androidx.compose.foundation.layout.Spacer
+import androidx.compose.foundation.layout.fillMaxSize
+import androidx.compose.foundation.layout.fillMaxWidth
+import androidx.compose.foundation.layout.height
 import androidx.compose.foundation.layout.padding
+import androidx.compose.foundation.lazy.LazyColumn
+import androidx.compose.foundation.lazy.items
+import androidx.compose.material3.Card
+import androidx.compose.material3.CircularProgressIndicator
 import androidx.compose.material3.ExperimentalMaterial3Api
+import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.Scaffold
+import androidx.compose.material3.ScrollableTabRow
 import androidx.compose.material3.Tab
-import androidx.compose.material3.TabRow
+import androidx.compose.material3.TabRowDefaults
+import androidx.compose.material3.TabRowDefaults.tabIndicatorOffset
 import androidx.compose.material3.Text
 import androidx.compose.material3.TopAppBar
 import androidx.compose.runtime.Composable
@@ -17,37 +29,23 @@ import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
 import androidx.compose.runtime.setValue
+import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
+import androidx.compose.ui.graphics.Color
+import androidx.compose.ui.platform.LocalContext
+import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
+import androidx.compose.ui.unit.sp
 import com.google.firebase.auth.FirebaseAuth
 import com.google.firebase.database.DataSnapshot
 import com.google.firebase.database.DatabaseError
 import com.google.firebase.database.FirebaseDatabase
 import com.google.firebase.database.ValueEventListener
-import androidx.compose.runtime.mutableStateListOf
-import androidx.compose.foundation.layout.*
-import androidx.compose.material3.CircularProgressIndicator
-import androidx.compose.ui.Alignment
-import androidx.compose.ui.platform.LocalContext
+import com.google.firebase.firestore.FieldPath
 import com.google.firebase.firestore.FirebaseFirestore
 import com.google.firebase.firestore.Query
-import androidx.compose.foundation.layout.Box
-import androidx.compose.foundation.layout.fillMaxSize
-import androidx.compose.foundation.lazy.LazyColumn
-import androidx.compose.ui.text.font.FontWeight
-import androidx.compose.ui.unit.sp
-import com.google.firebase.firestore.FieldPath
-import androidx.compose.foundation.lazy.items
-import androidx.compose.material3.ScrollableTabRow
 import java.text.SimpleDateFormat
 import java.util.Locale
-import androidx.compose.material3.Card
-import androidx.compose.ui.graphics.Color
-import androidx.compose.material3.MaterialTheme
-import androidx.compose.foundation.layout.fillMaxWidth
-import androidx.compose.material3.TabRowDefaults
-import androidx.compose.foundation.layout.height
-import androidx.compose.material3.TabRowDefaults.tabIndicatorOffset
 
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
@@ -172,7 +170,7 @@ fun My() {
             Box(
                 modifier = Modifier
                     .fillMaxSize()
-                    .padding(horizontal = 16.dp)
+
             ) {
                 when (selectedTabIndex) {
                     0 -> ProfileScreen(userInfoList)

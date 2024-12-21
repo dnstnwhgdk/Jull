@@ -74,7 +74,7 @@ fun ProfileScreen(userInfoList: List<UserInfo>) {
             Text(
                 text = "${info.label}: ${info.value}",
                 color = Color.Black,
-                fontSize = 24.sp,
+                fontSize = 18.sp,
                 fontWeight = if (info.label == "이름") FontWeight.Bold else FontWeight.Normal
             )
             Spacer(modifier = Modifier.height(8.dp))

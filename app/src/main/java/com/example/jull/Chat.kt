@@ -1,5 +1,6 @@
 
 import androidx.compose.animation.core.animateFloatAsState
+import androidx.compose.foundation.background
 import androidx.compose.foundation.clickable
 import androidx.compose.foundation.gestures.detectHorizontalDragGestures
 import androidx.compose.foundation.layout.Arrangement
@@ -9,6 +10,7 @@ import androidx.compose.foundation.layout.PaddingValues
 import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.fillMaxWidth
+import androidx.compose.foundation.layout.height
 import androidx.compose.foundation.layout.offset
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.size
@@ -52,27 +54,64 @@ fun ChatRoomsScreen(
     val chatRooms by viewModel.chatRooms.collectAsState()
     val lastMessages by viewModel.lastMessages.collectAsState()
 
-    LazyColumn(
-        modifier = Modifier.fillMaxSize(),
-        contentPadding = PaddingValues(16.dp),
-        verticalArrangement = Arrangement.spacedBy(12.dp)
-    ) {
-        items(chatRooms) { chatRoom ->
-            val lastMessageData = lastMessages[chatRoom.id]
-            val lastMessage = lastMessageData?.first?.content ?: "메시지가 없습니다."
-            val nickname = lastMessageData?.second ?: "알 수 없음"
-            val lastMessageTime = lastMessageData?.first?.timestamp?.let {
-                SimpleDateFormat("yyyy-MM-dd HH:mm", Locale.getDefault()).format(Date(it))
-            } ?: "시간 정보 없음"
+    Column(modifier = Modifier.fillMaxSize()) {
+        // 상단 제목
+        Text(
+            text = "채팅목록",
+            style = MaterialTheme.typography.titleLarge,
+            fontWeight = FontWeight.Bold,
+            modifier = Modifier
+                .fillMaxWidth()
+                .padding(16.dp),
+            color = MaterialTheme.colorScheme.onSurface
+        )
 
-            SwipeToDeleteChatRoom(
-                chatRoom = chatRoom,
-                nickname = nickname,
-                lastMessage = lastMessage,
-                lastMessageTime = lastMessageTime,
-                onChatRoomClick = { onChatRoomClick(chatRoom.id) },
-                onDelete = { viewModel.deleteChatRoom(chatRoom.id) }
-            )
+        // 경계선
+        Box(
+            modifier = Modifier
+                .fillMaxWidth()
+                .height(1.dp)
+                .padding(horizontal = 16.dp)
+                .background(color = MaterialTheme.colorScheme.onSurface.copy(alpha = 0.2f))
+        )
+
+        // 채팅 목록
+        if (chatRooms.isEmpty()) {
+            // 채팅방이 없을 경우 문구 표시
+            Box(
+                modifier = Modifier.fillMaxSize(),
+                contentAlignment = Alignment.Center
+            ) {
+                Text(
+                    text = "채팅중인 채팅방이 없습니다.",
+                    style = MaterialTheme.typography.bodyMedium,
+                    color = MaterialTheme.colorScheme.onSurface.copy(alpha = 0.5f)
+                )
+            }
+        } else {
+            LazyColumn(
+                modifier = Modifier.fillMaxSize(),
+                contentPadding = PaddingValues(16.dp),
+                verticalArrangement = Arrangement.spacedBy(12.dp)
+            ) {
+                items(chatRooms) { chatRoom ->
+                    val lastMessageData = lastMessages[chatRoom.id]
+                    val lastMessage = lastMessageData?.first?.content ?: "메시지가 없습니다."
+                    val nickname = lastMessageData?.second ?: "알 수 없음"
+                    val lastMessageTime = lastMessageData?.first?.timestamp?.let {
+                        SimpleDateFormat("yyyy-MM-dd HH:mm", Locale.getDefault()).format(Date(it))
+                    } ?: "시간 정보 없음"
+
+                    SwipeToDeleteChatRoom(
+                        chatRoom = chatRoom,
+                        nickname = nickname,
+                        lastMessage = lastMessage,
+                        lastMessageTime = lastMessageTime,
+                        onChatRoomClick = { onChatRoomClick(chatRoom.id) },
+                        onDelete = { viewModel.deleteChatRoom(chatRoom.id) }
+                    )
+                }
+            }
         }
     }
 }
