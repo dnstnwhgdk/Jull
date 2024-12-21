@@ -1,4 +1,5 @@
 import androidx.lifecycle.ViewModel
+import com.google.firebase.firestore.FieldValue
 import com.google.firebase.firestore.FirebaseFirestore
 
 class ItemDetailViewModel : ViewModel() {
@@ -12,55 +13,49 @@ class ItemDetailViewModel : ViewModel() {
         onChatRoomFound: (String) -> Unit,
         onError: (Exception) -> Unit
     ) {
-        val chatRoomsRef = firestore.collection("chatRooms")
+        val chatRoomId = "$itemId-$sellerId-$buyerId"
+        val chatRoomRef = firestore.collection("chatRooms").document(chatRoomId)
 
-        // 기존 채팅방 찾기
-        chatRoomsRef
-            .whereEqualTo("itemId", itemId)
-            .whereEqualTo("sellerId", sellerId)
-            .whereEqualTo("buyerId", buyerId)
-            .get()
-            .addOnSuccessListener { querySnapshot ->
-                if (querySnapshot.isEmpty) {
-                    // 채팅방이 없으면 새로 생성
-                    val currentTime = System.currentTimeMillis()
-                    val newChatRoom = hashMapOf(
+        chatRoomRef.get()
+            .addOnSuccessListener { documentSnapshot ->
+                if (documentSnapshot.exists()) {
+                    // 기존 채팅방이 존재
+                    onChatRoomFound(chatRoomId)
+                } else {
+                    // 새 채팅방 생성
+                    val newChatRoom = mapOf(
                         "itemId" to itemId,
                         "sellerId" to sellerId,
                         "buyerId" to buyerId,
-                        "itemPhotoUrl" to itemPhotoUrl, // 아이템 사진 추가
-                        "createdAt" to currentTime // 생성 시간 추가
+                        "itemPhotoUrl" to itemPhotoUrl,
+                        "createdAt" to FieldValue.serverTimestamp()
                     )
-                    chatRoomsRef.add(newChatRoom)
-                        .addOnSuccessListener { documentReference ->
-                            val chatRoomId = documentReference.id
-
-                            val welcomeMessage = hashMapOf(
+                    chatRoomRef.set(newChatRoom)
+                        .addOnSuccessListener {
+                            // 웰컴 메시지 추가
+                            val welcomeMessage = mapOf(
                                 "senderId" to sellerId,
                                 "content" to "안녕하세요! 채팅을 시작해보세요.",
-                                "timestamp" to currentTime
+                                "timestamp" to FieldValue.serverTimestamp()
                             )
-                            firestore.collection("chatRooms")
-                                .document(chatRoomId)
-                                .collection("messages")
+                            chatRoomRef.collection("messages")
                                 .add(welcomeMessage)
                                 .addOnSuccessListener {
                                     onChatRoomFound(chatRoomId)
                                 }
                                 .addOnFailureListener { exception ->
+                                    println("Error adding welcome message: ${exception.localizedMessage}")
                                     onError(exception)
                                 }
                         }
                         .addOnFailureListener { exception ->
+                            println("Error creating chat room: ${exception.localizedMessage}")
                             onError(exception)
                         }
-                } else {
-                    // 기존 채팅방 ID 반환
-                    val chatRoomId = querySnapshot.documents[0].id
-                    onChatRoomFound(chatRoomId)
                 }
             }
             .addOnFailureListener { exception ->
+                println("Error finding chat room: ${exception.localizedMessage}")
                 onError(exception)
             }
     }
