@@ -24,6 +24,7 @@ import androidx.compose.foundation.pager.rememberPagerState
 import androidx.compose.foundation.rememberScrollState
 import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.foundation.shape.RoundedCornerShape
+import androidx.compose.foundation.text.KeyboardOptions
 import androidx.compose.foundation.verticalScroll
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.filled.ArrowBack
@@ -67,6 +68,7 @@ import androidx.compose.material3.ExposedDropdownMenuBox
 import androidx.compose.material3.ExposedDropdownMenuDefaults
 import androidx.compose.material3.OutlinedTextField
 import androidx.compose.material3.AlertDialog
+import androidx.compose.ui.text.input.KeyboardType
 
 class ItemDetailActivity : ComponentActivity() {
     override fun onCreate(savedInstanceState: Bundle?) {
@@ -81,6 +83,8 @@ class ItemDetailActivity : ComponentActivity() {
         val sellerId = intent.getStringExtra("sellerId") ?: ""
         val itemId = intent.getStringExtra("id") ?: ""
         val createdAt = (intent.getSerializableExtra("createdAt") as? Date) ?: Date()
+        val tradeType = intent.getStringExtra("tradeType") ?: "택배 거래"
+
 
         setContent {
             CppNavigation(
@@ -90,6 +94,7 @@ class ItemDetailActivity : ComponentActivity() {
                 brandCategory = brandCategory,
                 effecterType = effecterType,
                 description = description,
+                tradeType = tradeType,
                 sellerId = sellerId,
                 itemId = itemId,
                 createdAt = createdAt,
@@ -109,6 +114,7 @@ fun CppNavigation(
     description: String,
     sellerId: String,
     itemId: String,
+    tradeType: String,
     createdAt: Date,
     onBackPressed: () -> Unit
 ) {
@@ -126,6 +132,7 @@ fun CppNavigation(
                 sellerId = sellerId,
                 itemId = itemId,
                 createdAt = createdAt,
+                tradeType = tradeType,
                 onBackPressed = onBackPressed,
                 onChatNavigate = { chatRoomId ->
                     navController.navigate("chat/$chatRoomId")
@@ -155,17 +162,22 @@ fun ItemDetailScreen(
     onBackPressed: () -> Unit,
     viewModel: ItemDetailViewModel = androidx.lifecycle.viewmodel.compose.viewModel(),
     onChatNavigate: (String) -> Unit,
-    status: String = "판매중"
+    status: String = "판매중",
+    tradeType: String = "택배 거래"
 ) {
     val imageUrls = remember(imageUrl) { imageUrl.split(",") }
     val pagerState = rememberPagerState { imageUrls.size }
     val currentUserId = FirebaseAuth.getInstance().currentUser?.uid
     val context = LocalContext.current
+    val firestore = FirebaseFirestore.getInstance()
 
     var isFavorite by remember { mutableStateOf(false) }
     var favoriteCount by remember { mutableStateOf(0) }
     var showDeleteDialog by remember { mutableStateOf(false) }
-
+    var showEditDialog by remember { mutableStateOf(false) }
+    var editTitle by remember { mutableStateOf(title) }
+    var editPrice by remember { mutableStateOf(price) }
+    var editDescription by remember { mutableStateOf(description) }
 
     LaunchedEffect(Unit) {
         if (currentUserId != null) {
@@ -319,12 +331,24 @@ fun ItemDetailScreen(
                             color = Color.Gray
                         )
                     }
-                    Text(
-                        text = SimpleDateFormat("yyyy.MM.dd HH:mm", Locale.getDefault())
-                            .format(createdAt),
-                        fontSize = 14.sp,
-                        color = Color.Gray
-                    )
+                    Column {  // Column으로 변경
+                        Text(
+                            text = SimpleDateFormat("yyyy.MM.dd HH:mm", Locale.getDefault())
+                                .format(createdAt),
+                            fontSize = 14.sp,
+                            color = Color.Gray
+                        )
+                        Text(  // 거래방식 표시 수정
+                            text = when (tradeType) {
+                                "택배 거래" -> "택배 거래"
+                                "직거래" -> "직거래"
+                                "택배거래/직거래" -> "택배거래/직거래"
+                                else -> tradeType
+                            },
+                            fontSize = 14.sp,
+                            color = Color.Gray
+                        )
+                    }
                 }
 
                 Spacer(modifier = Modifier.height(8.dp))
@@ -440,16 +464,105 @@ fun ItemDetailScreen(
 
                         Spacer(modifier = Modifier.height(8.dp))
 
-                        // 삭제 버튼 코드를 다음과 같이 수정
-                        Button(
-                            onClick = { showDeleteDialog = true },  // 대화상자 표시
+                        // 수정하기와 삭제하기 버튼을 한 줄로
+                        Row(
                             modifier = Modifier
                                 .fillMaxWidth()
                                 .padding(horizontal = 16.dp),
-                            colors = ButtonDefaults.buttonColors(containerColor = Color.Red),
-                            shape = RoundedCornerShape(8.dp)
+                            horizontalArrangement = Arrangement.spacedBy(8.dp)
                         ) {
-                            Text("삭제하기")
+                            Button(
+                                onClick = { showEditDialog = true },
+                                modifier = Modifier.weight(1f),
+                                colors = ButtonDefaults.buttonColors(containerColor = Color.Black),
+                                shape = RoundedCornerShape(8.dp)
+                            ) {
+                                Text("수정하기")
+                            }
+
+                            Button(
+                                onClick = { showDeleteDialog = true },
+                                modifier = Modifier.weight(1f),
+                                colors = ButtonDefaults.buttonColors(containerColor = Color.Red),
+                                shape = RoundedCornerShape(8.dp)
+                            ) {
+                                Text("삭제하기")
+                            }
+                        }
+
+                        // 수정 다이얼로그
+                        if (showEditDialog) {
+                            AlertDialog(
+                                onDismissRequest = { showEditDialog = false },
+                                title = { Text("상품 정보 수정") },
+                                text = {
+                                    Column(
+                                        modifier = Modifier
+                                            .fillMaxWidth()
+                                            .padding(vertical = 8.dp)
+                                    ) {
+                                        OutlinedTextField(
+                                            value = editTitle,
+                                            onValueChange = { editTitle = it },
+                                            label = { Text("제목") },
+                                            modifier = Modifier
+                                                .fillMaxWidth()
+                                                .padding(vertical = 4.dp)
+                                        )
+
+                                        OutlinedTextField(
+                                            value = editPrice,
+                                            onValueChange = { editPrice = it },
+                                            label = { Text("가격") },
+                                            keyboardOptions = KeyboardOptions(keyboardType = KeyboardType.Number),
+                                            modifier = Modifier
+                                                .fillMaxWidth()
+                                                .padding(vertical = 4.dp)
+                                        )
+
+                                        OutlinedTextField(
+                                            value = editDescription,
+                                            onValueChange = { editDescription = it },
+                                            label = { Text("설명") },
+                                            modifier = Modifier
+                                                .fillMaxWidth()
+                                                .height(150.dp)
+                                                .padding(vertical = 4.dp),
+                                            maxLines = 5
+                                        )
+                                    }
+                                },
+                                confirmButton = {
+                                    Button(
+                                        onClick = {
+                                            firestore.collection("items").document(itemId)
+                                                .update(mapOf(
+                                                    "title" to editTitle,
+                                                    "price" to editPrice,
+                                                    "description" to editDescription
+                                                ))
+                                                .addOnSuccessListener {
+                                                    Toast.makeText(context, "상품 정보가 수정되었습니다", Toast.LENGTH_SHORT).show()
+                                                    showEditDialog = false
+                                                }
+                                                .addOnFailureListener { exception ->
+                                                    Toast.makeText(context, "수정 실패: ${exception.message}", Toast.LENGTH_SHORT).show()
+                                                }
+                                        },
+                                        colors = ButtonDefaults.buttonColors(containerColor = Color.Black)
+                                    ) {
+                                        Text("수정")
+                                    }
+                                },
+                                dismissButton = {
+                                    Button(
+                                        onClick = { showEditDialog = false },
+                                        colors = ButtonDefaults.buttonColors(containerColor = Color.Gray)
+                                    ) {
+                                        Text("취소")
+                                    }
+                                }
+                            )
                         }
 
                         // 삭제 확인 대화상자 추가

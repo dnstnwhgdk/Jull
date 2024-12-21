@@ -32,6 +32,7 @@ data class Item(
                 description = data["description"] as? String ?: "",
                 createdAt = (data["createdAt"] as? Timestamp)?.toDate() ?: Date(),
                 status = data["status"] as? String ?: "판매중",
+                tradeType = data["tradeType"] as? String ?: "택배 거래"
             )
         }
     }
@@ -47,7 +48,8 @@ data class Item(
             "price" to price,
             "description" to description,
             "createdAt" to createdAt,
-            "status" to status
+            "status" to status,
+            "tradeType" to tradeType
         )
     }
 }
