@@ -1,5 +1,5 @@
 <resources>
-    <string name="app_name">Jull</string>
+    <string name="app_name">멜로디 마트</string>
     <string name="title_activity_login">LoginActivity</string>
     <string name="title_activity_main_nav">MainNav</string>
     <string name="title_activity_create">CreateActivity</string>
