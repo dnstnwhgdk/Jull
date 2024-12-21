@@ -95,7 +95,10 @@ fun ItemBord(
                                 onItemClick(item.copy(
                                     tradeType = item.tradeType
                                 ))
-                            }
+                            },
+                        elevation = CardDefaults.cardElevation(
+                            defaultElevation = 4.dp
+                        )
                     ) {
                         Box(
                             modifier = Modifier

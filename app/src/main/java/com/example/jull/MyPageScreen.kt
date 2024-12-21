@@ -13,6 +13,7 @@ import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.lazy.LazyColumn
 import androidx.compose.foundation.lazy.items
 import androidx.compose.material3.Card
+import androidx.compose.material3.CardDefaults
 import androidx.compose.material3.CircularProgressIndicator
 import androidx.compose.material3.ExperimentalMaterial3Api
 import androidx.compose.material3.MaterialTheme
@@ -490,7 +491,10 @@ fun MyComments() {
                                         putExtra("postId", commentWithPost.post.id)
                                     }
                                     context.startActivity(intent)
-                                }
+                                },
+                            elevation = CardDefaults.cardElevation(
+                                defaultElevation = 4.dp
+                            )
                         ) {
                             Column(modifier = Modifier.padding(16.dp)) {
                                 Text(
