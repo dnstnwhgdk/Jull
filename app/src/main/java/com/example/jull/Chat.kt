@@ -261,7 +261,7 @@ fun ChatRoomItem(
                     text = if (isSeller) "판매물품" else "구매물품",
                     style = MaterialTheme.typography.bodySmall,
                     fontWeight = FontWeight.Bold,
-                    color = if (isSeller) Color.Red else Color.Green
+                    color = if (isSeller) MaterialTheme.colorScheme.secondary else MaterialTheme.colorScheme.error
                 )
             }
 
@@ -340,5 +340,4 @@ fun DeletionConfirmationDialog(
         shape = MaterialTheme.shapes.medium, // 모서리 둥글게 설정
         backgroundColor = MaterialTheme.colorScheme.surface, // 배경색 설정
     )
-
 }
