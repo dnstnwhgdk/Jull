@@ -14,7 +14,9 @@ data class Item(
     val price: String = "",
     val description: String = "",
     val createdAt: Date = Date(),
-    val status: String = "판매중"
+    val status: String = "판매중",
+    val tradeType: String = "택배 거래" // 기본값을 "택배 거래"로 설정
+
 ) {
     companion object {
         fun fromMap(id: String, data: Map<String, Any>): Item {
@@ -29,7 +31,7 @@ data class Item(
                 price = data["price"] as? String ?: "",
                 description = data["description"] as? String ?: "",
                 createdAt = (data["createdAt"] as? Timestamp)?.toDate() ?: Date(),
-                status = data["status"] as? String ?: "판매중"
+                status = data["status"] as? String ?: "판매중",
             )
         }
     }

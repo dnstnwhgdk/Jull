@@ -7,6 +7,7 @@ import androidx.compose.foundation.layout.*
 import androidx.compose.foundation.lazy.grid.GridCells
 import androidx.compose.foundation.lazy.grid.LazyVerticalGrid
 import androidx.compose.foundation.lazy.grid.items
+import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.filled.Favorite
 import androidx.compose.material.icons.outlined.FavoriteBorder
@@ -14,6 +15,7 @@ import androidx.compose.material3.*
 import androidx.compose.runtime.*
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
+import androidx.compose.ui.draw.clip
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.layout.ContentScale
 import androidx.compose.ui.platform.LocalContext
@@ -108,10 +110,10 @@ fun ItemBord(
                                         model = item.imageUrl.split(",").firstOrNull(),
                                         contentDescription = "상품 이미지",
                                         modifier = Modifier
-                                            .defaultMinSize(150.dp, 230.dp)
-                                            .fillMaxWidth(),
-                                        contentScale = ContentScale.Crop,
-                                        alignment = Alignment.Center
+                                            .fillMaxWidth()    // 너비를 최대로
+                                            .aspectRatio(1f)   // 1:1 비율 유지
+                                            .clip(RoundedCornerShape(8.dp)),
+                                        contentScale = ContentScale.FillWidth  // 너비에 맞춰 이미지를 채움
                                     )
 
                                     Row(
@@ -135,7 +137,7 @@ fun ItemBord(
                                             Spacer(modifier = Modifier.width(4.dp))
                                             Text(
                                                 text = "예약중",
-                                                color = Color.Green,
+                                                color = Color.Gray,
                                                 fontSize = 12.sp,
                                                 modifier = Modifier
                                                     .background(
@@ -145,6 +147,24 @@ fun ItemBord(
                                                     .padding(4.dp)
                                             )
                                         }
+
+                                        Spacer(modifier = Modifier.width(4.dp))
+                                        Text(
+                                            text = when (item.tradeType) {
+                                                "택배 거래" -> "택"
+                                                "직거래" -> "직"
+                                                "택배거래/직거래" -> "택/직"
+                                                else -> ""
+                                            },
+                                            color = Color.Gray,
+                                            fontSize = 12.sp,
+                                            modifier = Modifier
+                                                .background(
+                                                    color = Color.White.copy(alpha = 0.7f),
+                                                    shape = MaterialTheme.shapes.small
+                                                )
+                                                .padding(4.dp)
+                                        )
                                     }
                                 }
 
@@ -160,14 +180,6 @@ fun ItemBord(
                                         fontWeight = FontWeight.Bold,
                                         modifier = Modifier.weight(1f)
                                     )
-                                    if (item.status == "판매완료") {
-                                        Text(
-                                            text = "판매완료",
-                                            color = Color.Red,
-                                            fontSize = 12.sp,
-                                            modifier = Modifier.padding(start = 4.dp)
-                                        )
-                                    }
                                 }
                                 Text(item.brandCategory)
                                 Text(item.effecterType)

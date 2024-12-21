@@ -26,9 +26,6 @@ import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.foundation.text.BasicTextField
 import androidx.compose.foundation.text.KeyboardOptions
 import androidx.compose.foundation.verticalScroll
-import androidx.compose.material.icons.Icons
-import androidx.compose.material.icons.filled.Add
-import androidx.compose.material.icons.filled.Clear
 import androidx.compose.material3.Button
 import androidx.compose.material3.ButtonDefaults
 import androidx.compose.material3.Checkbox
@@ -60,6 +57,9 @@ import com.google.firebase.firestore.FirebaseFirestore
 import com.google.firebase.storage.FirebaseStorage
 import java.util.UUID
 import java.util.Date
+import androidx.compose.material3.DropdownMenuItem
+import androidx.compose.material3.ExposedDropdownMenuBox
+import androidx.compose.material3.ExposedDropdownMenuDefaults
 
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
@@ -75,6 +75,9 @@ fun SellItemPage() {
     val storage = FirebaseStorage.getInstance()
     val firestore = FirebaseFirestore.getInstance()
     val auth = FirebaseAuth.getInstance()
+    var expanded by remember { mutableStateOf(false) }  // expanded 변수 추가
+    var selectedTradeType by remember { mutableStateOf("택배 거래") }
+
 
     val imagePickerLauncher = rememberLauncherForActivityResult(
         contract = ActivityResultContracts.GetContent()
@@ -87,6 +90,7 @@ fun SellItemPage() {
             }
         }
     }
+
 
     val brandTypes = listOf(
         BrandType("국내 브랜드", listOf("Altonics", "Amsterdam cream",
@@ -185,7 +189,7 @@ fun SellItemPage() {
                     imageUris.forEachIndexed { index, uri ->
                         Box(
                             modifier = Modifier
-                                .size(180.dp)
+                                .size(200.dp)
                                 .border(
                                     width = 1.dp,
                                     color = Color.Gray,
@@ -222,6 +226,40 @@ fun SellItemPage() {
                                 }
                             }
                         }
+                    }
+                }
+            }
+
+            // 거래방식 선택 (Row 밖으로 이동됨)
+            ExposedDropdownMenuBox(
+                expanded = expanded,
+                onExpandedChange = { expanded = !expanded },
+                modifier = Modifier
+                    .fillMaxWidth()
+                    .padding(top = 16.dp)
+            ) {
+                OutlinedTextField(
+                    value = selectedTradeType,
+                    onValueChange = {},
+                    readOnly = true,
+                    label = { Text("거래 방식") },
+                    trailingIcon = { ExposedDropdownMenuDefaults.TrailingIcon(expanded = expanded) },
+                    modifier = Modifier
+                        .menuAnchor()
+                        .fillMaxWidth()
+                )
+                ExposedDropdownMenu(
+                    expanded = expanded,
+                    onDismissRequest = { expanded = false }
+                ) {
+                    listOf("택배 거래", "직거래", "택배거래/직거래").forEach { tradeType ->
+                        DropdownMenuItem(
+                            text = { Text(tradeType) },
+                            onClick = {
+                                selectedTradeType = tradeType
+                                expanded = false
+                            }
+                        )
                     }
                 }
             }
@@ -265,13 +303,18 @@ fun SellItemPage() {
 
             // 제목 입력 텍스트 필드
             OutlinedTextField(
-                value = title,
-                onValueChange = { title = it },
-                label = { Text("제목 입력") },
+                value = if (title.length <= 14) title else title.take(14), // 50자로 제한
+                onValueChange = {
+                    if (it.length <= 50) title = it
+                },
+                label = { Text("제목 입력 (최대 14자)") },
                 modifier = Modifier
                     .fillMaxWidth()
-                    .padding(top = 16.dp)
+                    .padding(top = 16.dp),
+                singleLine = true
             )
+
+
 
             // 내용 입력 텍스트 필드
             Box(
@@ -361,7 +404,8 @@ fun SellItemPage() {
                                             effecterType = effecterType,
                                             price = price,
                                             description = description,
-                                            createdAt = Date()
+                                            createdAt = Date(),
+                                            tradeType = selectedTradeType
                                         )
 
                                         firestore.collection("items")
