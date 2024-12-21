@@ -1,4 +1,5 @@
 
+
 import androidx.compose.foundation.background
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
@@ -12,6 +13,7 @@ import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.width
 import androidx.compose.foundation.lazy.LazyColumn
 import androidx.compose.foundation.lazy.items
+import androidx.compose.foundation.lazy.rememberLazyListState
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.filled.ArrowBack
@@ -31,6 +33,7 @@ import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
 import androidx.compose.runtime.rememberCoroutineScope
 import androidx.compose.runtime.setValue
+import androidx.compose.runtime.snapshotFlow
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
@@ -49,10 +52,11 @@ fun ChatScreen(chatRoomId: String, onBackClick: () -> Unit) {
     val firestore = FirebaseFirestore.getInstance()
     val currentUserId = FirebaseAuth.getInstance().currentUser?.uid ?: "UnknownUser"
     val messages = remember { mutableStateListOf<Map<String, Any>>() }
+    val listState = rememberLazyListState() // 스크롤 상태 관리
     val scope = rememberCoroutineScope()
     var messageText by remember { mutableStateOf(TextFieldValue("")) }
 
-    // 실시간 메시지 로드 및 읽음 처리
+    // 실시간 메시지 로드
     LaunchedEffect(chatRoomId) {
         firestore.collection("chatRooms")
             .document(chatRoomId)
@@ -67,13 +71,25 @@ fun ChatScreen(chatRoomId: String, onBackClick: () -> Unit) {
                 snapshot?.let {
                     messages.clear()
                     for (doc in it.documents) {
-                        val message = doc.data ?: emptyMap()
-                        messages.add(message)
+                        messages.add(doc.data ?: emptyMap())
+                    }
+                }
+            }
+    }
 
-                        // 메시지 읽음 처리
+    // 읽음 처리: 스크롤이 메시지의 끝에 도달했을 때만 처리
+    LaunchedEffect(listState) {
+        snapshotFlow { listState.layoutInfo.visibleItemsInfo }
+            .collect { visibleItems ->
+                if (visibleItems.isNotEmpty() && visibleItems.last().index == messages.lastIndex) {
+                    messages.forEachIndexed { index, message ->
                         val readBy = message["readBy"] as? List<String> ?: emptyList()
                         if (!readBy.contains(currentUserId)) {
-                            doc.reference.update("readBy", readBy + currentUserId)
+                            firestore.collection("chatRooms")
+                                .document(chatRoomId)
+                                .collection("messages")
+                                .document(index.toString()) // 메시지 ID에 맞게 수정 필요
+                                .update("readBy", readBy + currentUserId)
                         }
                     }
                 }
@@ -97,8 +113,8 @@ fun ChatScreen(chatRoomId: String, onBackClick: () -> Unit) {
                 .fillMaxSize()
                 .padding(padding)
         ) {
-            // 메시지 리스트
             LazyColumn(
+                state = listState, // 스크롤 상태 연결
                 modifier = Modifier.weight(1f),
                 reverseLayout = false
             ) {
@@ -108,7 +124,7 @@ fun ChatScreen(chatRoomId: String, onBackClick: () -> Unit) {
                     val timestamp = message["timestamp"] as? Long ?: 0L
                     val readBy = message["readBy"] as? List<String> ?: emptyList()
                     val isCurrentUser = senderId == currentUserId
-                    val isRead = readBy.size > 1 // 나를 제외한 다른 사용자가 읽었는지 확인
+                    val isRead = readBy.size > 1
 
                     MessageBubble(
                         content = content,
@@ -119,7 +135,6 @@ fun ChatScreen(chatRoomId: String, onBackClick: () -> Unit) {
                 }
             }
 
-            // 메시지 입력 필드와 전송 버튼
             Row(
                 modifier = Modifier
                     .fillMaxWidth()
@@ -141,7 +156,7 @@ fun ChatScreen(chatRoomId: String, onBackClick: () -> Unit) {
                                     "senderId" to currentUserId,
                                     "content" to messageText.text,
                                     "timestamp" to System.currentTimeMillis(),
-                                    "readBy" to listOf(currentUserId) // 메시지 전송 시 나를 읽음 처리
+                                    "readBy" to listOf(currentUserId)
                                 )
                                 firestore.collection("chatRooms")
                                     .document(chatRoomId)
@@ -158,6 +173,7 @@ fun ChatScreen(chatRoomId: String, onBackClick: () -> Unit) {
         }
     }
 }
+
 
 @Composable
 fun MessageBubble(content: String, isCurrentUser: Boolean, timestamp: Long, isRead: Boolean) {
