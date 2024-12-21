@@ -24,6 +24,7 @@ import androidx.compose.material3.Card
 import androidx.compose.material3.CardDefaults
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.Text
+import androidx.compose.material3.TextButton
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.collectAsState
 import androidx.compose.runtime.getValue
@@ -100,7 +101,7 @@ fun ChatRoomsScreen(
                     val unreadCount = unreadCounts[chatRoom.id] ?: 0
                     val lastMessage = lastMessageData?.first?.content ?: "메시지가 없습니다."
                     val nickname = if (chatRoom.sellerId == currentUserId) {
-                        "구매자: ${lastMessageData?.third ?: "알 수 없음"}"
+                        "구매요청: ${lastMessageData?.third ?: "알 수 없음"}"
                     } else {
                         "판매자: ${lastMessageData?.second ?: "알 수 없음"}"
                     }
@@ -300,23 +301,44 @@ fun DeletionConfirmationDialog(
 ) {
     AlertDialog(
         onDismissRequest = { onDismiss() },
-        title = { Text(text = "삭제 확인") },
-        text = { Text(text = "정말로 삭제 하겠습니까?") },
+        title = {
+            Text(
+                text = "게시글 삭제",
+                style = MaterialTheme.typography.titleMedium,
+                color = MaterialTheme.colorScheme.onSurface
+            )
+        },
+        text = {
+            Text(
+                text = "정말 삭제하시겠습니까?",
+                style = MaterialTheme.typography.bodyMedium,
+                color = MaterialTheme.colorScheme.onSurface.copy(alpha = 0.7f)
+            )
+        },
         confirmButton = {
-            Button(
-                onClick = { onConfirm() },
-                colors = ButtonDefaults.buttonColors(containerColor = Color.Red)
+            TextButton(
+                onClick = { onConfirm() }
             ) {
-                Text("예", color = Color.White)
+                Text(
+                    text = "삭제",
+                    style = MaterialTheme.typography.bodyLarge,
+                    color = MaterialTheme.colorScheme.error
+                )
             }
         },
         dismissButton = {
-            Button(
-                onClick = { onDismiss() },
-                colors = ButtonDefaults.buttonColors(containerColor = Color.Gray)
+            TextButton(
+                onClick = { onDismiss() }
             ) {
-                Text("아니오", color = Color.White)
+                Text(
+                    text = "취소",
+                    style = MaterialTheme.typography.bodyLarge,
+                    color = MaterialTheme.colorScheme.primary
+                )
             }
-        }
+        },
+        shape = MaterialTheme.shapes.medium, // 모서리 둥글게 설정
+        backgroundColor = MaterialTheme.colorScheme.surface, // 배경색 설정
     )
+
 }
