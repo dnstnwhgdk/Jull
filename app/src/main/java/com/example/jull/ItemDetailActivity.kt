@@ -35,6 +35,7 @@ import androidx.compose.material3.Divider
 import androidx.compose.material3.ExperimentalMaterial3Api
 import androidx.compose.material3.Icon
 import androidx.compose.material3.IconButton
+import androidx.compose.material3.OutlinedTextFieldDefaults
 import androidx.compose.material3.Scaffold
 import androidx.compose.material3.Text
 import androidx.compose.material3.TopAppBar
@@ -61,6 +62,11 @@ import com.google.firebase.firestore.FirebaseFirestore
 import java.text.SimpleDateFormat
 import java.util.Date
 import java.util.Locale
+import androidx.compose.material3.DropdownMenuItem
+import androidx.compose.material3.ExposedDropdownMenuBox
+import androidx.compose.material3.ExposedDropdownMenuDefaults
+import androidx.compose.material3.OutlinedTextField
+import androidx.compose.material3.AlertDialog
 
 class ItemDetailActivity : ComponentActivity() {
     override fun onCreate(savedInstanceState: Bundle?) {
@@ -148,7 +154,8 @@ fun ItemDetailScreen(
     createdAt: Date,
     onBackPressed: () -> Unit,
     viewModel: ItemDetailViewModel = androidx.lifecycle.viewmodel.compose.viewModel(),
-    onChatNavigate: (String) -> Unit
+    onChatNavigate: (String) -> Unit,
+    status: String = "판매중"
 ) {
     val imageUrls = remember(imageUrl) { imageUrl.split(",") }
     val pagerState = rememberPagerState { imageUrls.size }
@@ -157,6 +164,8 @@ fun ItemDetailScreen(
 
     var isFavorite by remember { mutableStateOf(false) }
     var favoriteCount by remember { mutableStateOf(0) }
+    var showDeleteDialog by remember { mutableStateOf(false) }
+
 
     LaunchedEffect(Unit) {
         if (currentUserId != null) {
@@ -349,32 +358,136 @@ fun ItemDetailScreen(
                 Spacer(modifier = Modifier.height(24.dp))
 
                 if (currentUserId == sellerId) {
-                    Button(
-                        onClick = {
-                            val firestore = FirebaseFirestore.getInstance()
-                            firestore.collection("items")
-                                .whereEqualTo("sellerId", sellerId)
-                                .whereEqualTo("title", title)
-                                .get()
-                                .addOnSuccessListener { documents ->
-                                    for (document in documents) {
-                                        document.reference.update("createdAt", Date())
-                                            .addOnSuccessListener {
-                                                Toast.makeText(context, "상품이 끌어올려졌습니다", Toast.LENGTH_SHORT).show()
-                                            }
-                                            .addOnFailureListener {
-                                                Toast.makeText(context, "끌어올리기 실패", Toast.LENGTH_SHORT).show()
-                                            }
+                    Column {
+                        Button(
+                            onClick = {
+                                val firestore = FirebaseFirestore.getInstance()
+                                firestore.collection("items")
+                                    .whereEqualTo("sellerId", sellerId)
+                                    .whereEqualTo("title", title)
+                                    .get()
+                                    .addOnSuccessListener { documents ->
+                                        for (document in documents) {
+                                            document.reference.update("createdAt", Date())
+                                                .addOnSuccessListener {
+                                                    Toast.makeText(context, "상품이 끌어올려졌습니다", Toast.LENGTH_SHORT).show()
+                                                }
+                                                .addOnFailureListener { exception ->
+                                                    Toast.makeText(context, "끌어올리기 실패", Toast.LENGTH_SHORT).show()
+                                                }
+                                        }
+                                    }
+                            },
+                            modifier = Modifier
+                                .fillMaxWidth()
+                                .padding(horizontal = 16.dp),
+                            colors = ButtonDefaults.buttonColors(containerColor = Color.Black),
+                            shape = RoundedCornerShape(8.dp)
+                        ) {
+                            Text("물건 끌어올리기")
+                        }
+
+                        Spacer(modifier = Modifier.height(8.dp))
+
+                        var expanded by remember { mutableStateOf(false) }
+                        var selectedStatus by remember { mutableStateOf(status) }
+
+                        ExposedDropdownMenuBox(
+                            expanded = expanded,
+                            onExpandedChange = { expanded = !expanded },
+                            modifier = Modifier
+                                .fillMaxWidth()
+                                .padding(horizontal = 16.dp)
+                        ) {
+                            OutlinedTextField(
+                                value = selectedStatus,
+                                onValueChange = {},
+                                readOnly = true,
+                                modifier = Modifier
+                                    .menuAnchor()
+                                    .fillMaxWidth(),
+                                trailingIcon = { ExposedDropdownMenuDefaults.TrailingIcon(expanded = expanded) },
+                                colors = OutlinedTextFieldDefaults.colors(
+                                    focusedBorderColor = Color.Black,
+                                    unfocusedBorderColor = Color.Gray
+                                )
+                            )
+
+                            ExposedDropdownMenu(
+                                expanded = expanded,
+                                onDismissRequest = { expanded = false }
+                            ) {
+                                listOf("판매중", "예약중", "판매완료").forEach { statusOption ->
+                                    DropdownMenuItem(
+                                        text = { Text(statusOption) },
+                                        onClick = {
+                                            selectedStatus = statusOption
+                                            expanded = false
+                                            val firestore = FirebaseFirestore.getInstance()
+                                            firestore.collection("items").document(itemId)
+                                                .update("status", statusOption)
+                                                .addOnSuccessListener {
+                                                    Toast.makeText(context, "상태가 변경되었습니다", Toast.LENGTH_SHORT).show()
+                                                }
+                                                .addOnFailureListener { exception ->
+                                                    Toast.makeText(context, "상태 변경 실패: ${exception.message}", Toast.LENGTH_SHORT).show()
+                                                }
+                                        }
+                                    )
+                                }
+                            }
+                        }
+
+                        Spacer(modifier = Modifier.height(8.dp))
+
+                        // 삭제 버튼 코드를 다음과 같이 수정
+                        Button(
+                            onClick = { showDeleteDialog = true },  // 대화상자 표시
+                            modifier = Modifier
+                                .fillMaxWidth()
+                                .padding(horizontal = 16.dp),
+                            colors = ButtonDefaults.buttonColors(containerColor = Color.Red),
+                            shape = RoundedCornerShape(8.dp)
+                        ) {
+                            Text("삭제하기")
+                        }
+
+                        // 삭제 확인 대화상자 추가
+                        if (showDeleteDialog) {
+                            AlertDialog(
+                                onDismissRequest = { showDeleteDialog = false },
+                                title = { Text("삭제 확인") },
+                                text = { Text("정말로 삭제하시겠습니까?") },
+                                confirmButton = {
+                                    Button(
+                                        onClick = {
+                                            val firestore = FirebaseFirestore.getInstance()
+                                            firestore.collection("items").document(itemId)
+                                                .delete()
+                                                .addOnSuccessListener {
+                                                    Toast.makeText(context, "상품이 삭제되었습니다", Toast.LENGTH_SHORT).show()
+                                                    onBackPressed()
+                                                }
+                                                .addOnFailureListener { exception ->
+                                                    Toast.makeText(context, "삭제 실패: ${exception.message}", Toast.LENGTH_SHORT).show()
+                                                }
+                                            showDeleteDialog = false
+                                        },
+                                        colors = ButtonDefaults.buttonColors(containerColor = Color.Red)
+                                    ) {
+                                        Text("삭제")
+                                    }
+                                },
+                                dismissButton = {
+                                    Button(
+                                        onClick = { showDeleteDialog = false },
+                                        colors = ButtonDefaults.buttonColors(containerColor = Color.Gray)
+                                    ) {
+                                        Text("취소")
                                     }
                                 }
-                        },
-                        modifier = Modifier
-                            .fillMaxWidth()
-                            .padding(horizontal = 16.dp),
-                        colors = ButtonDefaults.buttonColors(containerColor = Color.Black),
-                        shape = RoundedCornerShape(8.dp)
-                    ) {
-                        Text("물건 끌어올리기")
+                            )
+                        }
                     }
                 } else {
                     Button(

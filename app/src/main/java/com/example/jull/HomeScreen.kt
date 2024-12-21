@@ -22,6 +22,7 @@ import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.platform.LocalFocusManager
 import androidx.compose.ui.unit.dp
+import androidx.compose.ui.unit.sp
 import com.google.firebase.firestore.FirebaseFirestore
 import com.google.firebase.firestore.Query
 import com.google.accompanist.flowlayout.FlowRow
@@ -127,11 +128,15 @@ fun Home() {
             }
         }
 
+        // 판매완료가 아닌 상품만 필터링 (판매완료 탭 제외)
+        val nonCompletedItems = categoryFiltered.filter { it.status != "판매완료" }
+
         filteredItems = when (selectedButtonIndex) {
-            0 -> categoryFiltered.sortedByDescending { item -> itemFavoriteCounts[item.id] ?: 0 }
-            1 -> categoryFiltered
-            2 -> categoryFiltered.sortedBy { it.price.replace("[^0-9]".toRegex(), "").toIntOrNull() ?: 0 }
-            3 -> categoryFiltered.sortedByDescending { it.price.replace("[^0-9]".toRegex(), "").toIntOrNull() ?: 0 }
+            0 -> nonCompletedItems.sortedByDescending { item -> itemFavoriteCounts[item.id] ?: 0 } // 인기상품
+            1 -> nonCompletedItems  // 최신상품
+            2 -> nonCompletedItems.sortedBy { it.price.replace("[^0-9]".toRegex(), "").toIntOrNull() ?: 0 }  // 저가상품
+            3 -> nonCompletedItems.sortedByDescending { it.price.replace("[^0-9]".toRegex(), "").toIntOrNull() ?: 0 }  // 고가상품
+            4 -> categoryFiltered.filter { it.status == "판매완료" }  // 판매완료 상품만 보여줌
             else -> categoryFiltered
         }
     }
@@ -198,7 +203,7 @@ fun Home() {
                 modifier = Modifier.fillMaxWidth(),
                 horizontalArrangement = Arrangement.SpaceEvenly
             ) {
-                listOf("인기상품", "최신상품", "저가상품", "고가상품").forEachIndexed { index, text ->
+                listOf("인기상품", "최신상품", "저가상품", "고가상품", "판매완료").forEachIndexed { index, text ->
                     TextButton(
                         onClick = { selectedButtonIndex = index },
                         colors = ButtonDefaults.textButtonColors(
@@ -206,7 +211,12 @@ fun Home() {
                         ),
                         modifier = Modifier.weight(1f)
                     ) {
-                        Text(text)
+                        Text(
+                            text = text,
+                            fontSize = 12.sp,  // 폰트 크기 줄임
+                            maxLines = 1,      // 한 줄로 표시
+                            modifier = Modifier.padding(horizontal = 2.dp)  // 좌우 패딩 줄임
+                        )
                     }
                 }
             }

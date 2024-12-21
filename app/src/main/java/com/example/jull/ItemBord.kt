@@ -114,24 +114,61 @@ fun ItemBord(
                                         alignment = Alignment.Center
                                     )
 
-                                    // 시간 표시 추가
-                                    Text(
-                                        text = getTimeAgo(item.createdAt),
-                                        color = Color.Gray,
-                                        fontSize = 12.sp,
+                                    Row(
                                         modifier = Modifier
                                             .align(Alignment.TopStart)
                                             .padding(8.dp)
-                                            .background(
-                                                color = Color.White.copy(alpha = 0.7f),
-                                                shape = MaterialTheme.shapes.small
+                                    ) {
+                                        Text(
+                                            text = getTimeAgo(item.createdAt),
+                                            color = Color.Gray,
+                                            fontSize = 12.sp,
+                                            modifier = Modifier
+                                                .background(
+                                                    color = Color.White.copy(alpha = 0.7f),
+                                                    shape = MaterialTheme.shapes.small
+                                                )
+                                                .padding(4.dp)
+                                        )
+
+                                        if (item.status == "예약중") {
+                                            Spacer(modifier = Modifier.width(4.dp))
+                                            Text(
+                                                text = "예약중",
+                                                color = Color.Green,
+                                                fontSize = 12.sp,
+                                                modifier = Modifier
+                                                    .background(
+                                                        color = Color.White.copy(alpha = 0.7f),
+                                                        shape = MaterialTheme.shapes.small
+                                                    )
+                                                    .padding(4.dp)
                                             )
-                                            .padding(4.dp)
-                                    )
+                                        }
+                                    }
                                 }
 
                                 Spacer(modifier = Modifier.height(8.dp))
-                                Text(item.title, fontWeight = FontWeight.Bold)
+
+                                Row(
+                                    modifier = Modifier.fillMaxWidth(),
+                                    horizontalArrangement = Arrangement.SpaceBetween,
+                                    verticalAlignment = Alignment.CenterVertically
+                                ) {
+                                    Text(
+                                        item.title,
+                                        fontWeight = FontWeight.Bold,
+                                        modifier = Modifier.weight(1f)
+                                    )
+                                    if (item.status == "판매완료") {
+                                        Text(
+                                            text = "판매완료",
+                                            color = Color.Red,
+                                            fontSize = 12.sp,
+                                            modifier = Modifier.padding(start = 4.dp)
+                                        )
+                                    }
+                                }
                                 Text(item.brandCategory)
                                 Text(item.effecterType)
                                 Text(item.price, fontWeight = FontWeight.Bold)
