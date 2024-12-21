@@ -35,7 +35,8 @@ class ItemDetailViewModel : ViewModel() {
                             val welcomeMessage = mapOf(
                                 "senderId" to sellerId,
                                 "content" to "안녕하세요! 채팅을 시작해보세요.",
-                                "timestamp" to currentTime
+                                "timestamp" to currentTime,
+                                "readBy" to listOf<String>() // 읽음 상태 초기화
                             )
                             firestore.collection("chatRooms")
                                 .document(chatRoomId)
