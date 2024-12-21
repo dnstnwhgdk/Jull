@@ -10,17 +10,21 @@ import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.height
 import androidx.compose.foundation.layout.padding
+import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.layout.width
 import androidx.compose.foundation.lazy.LazyColumn
 import androidx.compose.foundation.lazy.items
 import androidx.compose.foundation.lazy.rememberLazyListState
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material.icons.Icons
+import androidx.compose.material.icons.filled.Add
 import androidx.compose.material.icons.filled.ArrowBack
 import androidx.compose.material3.Button
+import androidx.compose.material3.ButtonDefaults
 import androidx.compose.material3.ExperimentalMaterial3Api
 import androidx.compose.material3.Icon
 import androidx.compose.material3.IconButton
+import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.Scaffold
 import androidx.compose.material3.Text
 import androidx.compose.material3.TextField
@@ -98,20 +102,28 @@ fun ChatScreen(chatRoomId: String, onBackClick: () -> Unit) {
 
     Scaffold(
         topBar = {
-            TopAppBar(
-                title = { Text("채팅방") },
-                navigationIcon = {
-                    IconButton(onClick = onBackClick) {
-                        Icon(imageVector = Icons.Filled.ArrowBack, contentDescription = "뒤로가기")
+            Column { // TopAppBar와 Divider를 Column으로 감싸기
+                TopAppBar(
+                    title = { Text("채팅방") },
+                    navigationIcon = {
+                        IconButton(onClick = onBackClick) {
+                            Icon(imageVector = Icons.Filled.ArrowBack, contentDescription = "뒤로가기")
+                        }
                     }
-                }
-            )
+                )
+                Box(
+                    modifier = Modifier
+                        .fillMaxWidth()
+                        .height(1.dp) // 경계선 두께
+                        .background(Color.LightGray) // 경계선 색상
+                )
+            }
         }
-    ) { padding ->
+    ) {
+        padding ->
         Column(
             modifier = Modifier
                 .fillMaxSize()
-                .padding(padding)
         ) {
             LazyColumn(
                 state = listState, // 스크롤 상태 연결
@@ -134,20 +146,49 @@ fun ChatScreen(chatRoomId: String, onBackClick: () -> Unit) {
                     )
                 }
             }
-
+            Box(
+                modifier = Modifier
+                    .fillMaxWidth()
+                    .height(1.dp)
+                    .background(MaterialTheme.colorScheme.onSurface.copy(alpha = 0.2f))
+            )
+            // 메시지 입력 필드와 버튼
             Row(
                 modifier = Modifier
                     .fillMaxWidth()
-                    .padding(8.dp)
+                    .padding(8.dp),
+                verticalAlignment = Alignment.CenterVertically
             ) {
+                // + 버튼
+                IconButton(
+                    onClick = {}, // 이미지만 선택하도록 필터
+                    modifier = Modifier.size(48.dp)
+                ) {
+                    Icon(
+                        imageVector = Icons.Default.Add,
+                        contentDescription = "Add Image",
+                        tint = Color.Black
+                    )
+                }
+
+                Spacer(modifier = Modifier.width(8.dp))
+
+                // 텍스트 입력 필드
                 TextField(
                     value = messageText,
                     onValueChange = { messageText = it },
                     placeholder = { Text("메시지를 입력하세요...") },
-                    modifier = Modifier.weight(1f),
-                    singleLine = true
+                    modifier = Modifier
+                        .weight(1f)
+                        .clip(RoundedCornerShape(24.dp))
+                        .background(Color(0xFFF0F0F0))
+                        .padding(horizontal = 8.dp),
+                    singleLine = true,
                 )
+
                 Spacer(modifier = Modifier.width(8.dp))
+
+                // 전송 버튼
                 Button(
                     onClick = {
                         if (messageText.text.isNotBlank()) {
@@ -155,8 +196,7 @@ fun ChatScreen(chatRoomId: String, onBackClick: () -> Unit) {
                                 val newMessage = mapOf(
                                     "senderId" to currentUserId,
                                     "content" to messageText.text,
-                                    "timestamp" to System.currentTimeMillis(),
-                                    "readBy" to listOf(currentUserId)
+                                    "timestamp" to System.currentTimeMillis()
                                 )
                                 firestore.collection("chatRooms")
                                     .document(chatRoomId)
@@ -165,9 +205,15 @@ fun ChatScreen(chatRoomId: String, onBackClick: () -> Unit) {
                                 messageText = TextFieldValue("") // 입력 필드 초기화
                             }
                         }
-                    }
+                    },
+                    modifier = Modifier.size(48.dp),
+                    shape = RoundedCornerShape(24.dp),
+                    colors = ButtonDefaults.buttonColors(
+                        containerColor = Color.Black,
+                        contentColor = Color.White
+                    )
                 ) {
-                    Text("보내기")
+                    Text("→", color = Color.White, fontSize = 24.sp)
                 }
             }
         }
