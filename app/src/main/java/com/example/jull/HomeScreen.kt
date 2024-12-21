@@ -50,13 +50,12 @@ fun Home() {
         BrandType("수입 브랜드(A~L)", listOf("Anasounds", "BEETRONICS", "BluGuitar", "Bob Burt",
             "Bogner", "Boss", "Catalinbread", "Chase Bliss Audio", "CKK Electronic", "Cool Music",
             "Cornerstone", "Creation Audio Labs", "CTC", "Danelectro", "Diamond pedals", "Digitech (DOD)",
-            "Dls", "Dr.J", "DSM & Humboldt", "Dunlop", "E.W.S", "EBS", "Electro Harmonix", "ENGL",
-            "Ernie Ball", "Eventide", "Fender", "Flamma", "Fox Pedal", "FreeTheTone", "Fulltone",
-            "GameChanger", "Greenhouse", "Greer", "GURUS", "Gus.G", "HEADRUSH", "Horizon Devices",
-            "HOTONE", "Humboldt", "Hungry Robot", "Ibanez", "IK Multimedia", "ISP", "J.Rockett Audio",
-            "Jackson Audio", "Jam Pedal", "JHS PEDALS", "Joemeek", "JOYO", "Kardian", "Keeley",
-            "Keyztone", "KHDK ELECTRONICS", "Kikutani", "Korg", "KSR", "Lehle", "Line6", "Livemaster",
-            "LPD Pedals", "Lucent", "Solar")),
+            "Dls", "Dr.J", "DSM & Humboldt", "Dunlop", "E.W.S", "EBS", "Electro Harmonix", "ENGL", "Ernie Ball", "Eventide",
+            "Fender", "Flamma", "Fox Pedal", "FreeTheTone", "Fulltone", "GameChanger", "Greenhouse",
+            "Greer", "GURUS", "Gus.G", "HEADRUSH", "Horizon Devices", "HOTONE", "Humboldt", "Hungry Robot",
+            "Ibanez", "IK Multimedia", "ISP", "J.Rockett Audio", "Jackson Audio", "Jam Pedal", "JHS PEDALS",
+            "Joemeek", "JOYO", "Kardian", "Keeley", "Keyztone", "KHDK ELECTRONICS", "Kikutani", "Korg",
+            "KSR", "Lehle", "Line6", "Livemaster", "LPD Pedals", "Lucent", "Solar")),
         BrandType("수입 브랜드(M~Z)", listOf("M-Vave", "Mad Professor", "Magnetic Effects",
             "Mastro Valvola", "Matthews", "Maxon", "Mesa/Boogie", "Mission Engineering", "Mod tone",
             "Mooer Audio", "Morley", "Mosky", "MXR", "Neural DSP", "NoahSARK", "Nosepedal", "Nux",
@@ -69,8 +68,8 @@ fun Home() {
             "VITAL AUDIO", "Voodoo Lab", "Vox", "Walrus Audio", "Wampler", "Xotic", "Xvive", "Z.Vex", "Zoom")),
         BrandType("이펙터 유형(필수)", listOf("멀티이펙터/모델러/IR로더", "오버드라이브/디스토션", "퍼즈/부스터",
             "컴프레서/리미터", "이퀄라이져/서스테이너", "코러스/페이저/플랜저", "트레몰로/바이브", "로터리/링 모듈레이터",
-            "리버브/딜레이/에코", "루프/샘플러", "하모나이저/피치쉬프터/옥타브", "노이즈리덕션/노이즈게이트", "볼륨/와우",
-            "프리앰프/다이렉트박스", "파워서플라이", "보코더/토크박스/필터", "익스프레션", "컨트롤러/풋스위치/채널스위치", "그외"))
+            "리버브/딜레이/에코", "루프/샘플러", "하모나이저/피치쉬프터", "노이즈리덕션/노이즈게이트", "볼륨/와우", "채널스위치/옥타브",
+            "프리앰프/다이렉트박스", "파워서플라이", "보코더/토크박스/필터", "익스프레션", "컨트롤러/풋스위치", "그외")),
     )
 
     LaunchedEffect(Unit) {
