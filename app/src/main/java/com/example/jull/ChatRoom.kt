@@ -7,5 +7,5 @@ data class ChatRoom(
     val buyerId: String = "",
     val lastMessage: String = "",
     val timestamp: Long = 0L,
-    val imageUrl: String = ""
+    val imageUrl: String = "",
 )

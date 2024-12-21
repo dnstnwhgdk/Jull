@@ -41,6 +41,7 @@ import androidx.compose.ui.unit.dp
 import androidx.lifecycle.viewmodel.compose.viewModel
 import coil.compose.AsyncImage
 import com.example.jull.ChatRoom
+import com.google.firebase.auth.FirebaseAuth
 import java.text.SimpleDateFormat
 import java.util.Date
 import java.util.Locale
@@ -53,6 +54,8 @@ fun ChatRoomsScreen(
 ) {
     val chatRooms by viewModel.chatRooms.collectAsState()
     val lastMessages by viewModel.lastMessages.collectAsState()
+    val unreadCounts by viewModel.unreadMessageCounts.collectAsState()
+    val currentUserId = FirebaseAuth.getInstance().currentUser?.uid ?: ""
 
     Column(modifier = Modifier.fillMaxSize()) {
         // 상단 제목
@@ -71,13 +74,11 @@ fun ChatRoomsScreen(
             modifier = Modifier
                 .fillMaxWidth()
                 .height(1.dp)
-                .padding(horizontal = 16.dp)
-                .background(color = MaterialTheme.colorScheme.onSurface.copy(alpha = 0.2f))
+                .background(MaterialTheme.colorScheme.onSurface.copy(alpha = 0.2f))
         )
 
-        // 채팅 목록
         if (chatRooms.isEmpty()) {
-            // 채팅방이 없을 경우 문구 표시
+            // 채팅방이 없을 시 표시되는 문구
             Box(
                 modifier = Modifier.fillMaxSize(),
                 contentAlignment = Alignment.Center
@@ -96,8 +97,13 @@ fun ChatRoomsScreen(
             ) {
                 items(chatRooms) { chatRoom ->
                     val lastMessageData = lastMessages[chatRoom.id]
+                    val unreadCount = unreadCounts[chatRoom.id] ?: 0
                     val lastMessage = lastMessageData?.first?.content ?: "메시지가 없습니다."
-                    val nickname = lastMessageData?.second ?: "알 수 없음"
+                    val nickname = if (chatRoom.sellerId == currentUserId) {
+                        "구매자: ${lastMessageData?.third ?: "알 수 없음"}"
+                    } else {
+                        "판매자: ${lastMessageData?.second ?: "알 수 없음"}"
+                    }
                     val lastMessageTime = lastMessageData?.first?.timestamp?.let {
                         SimpleDateFormat("yyyy-MM-dd HH:mm", Locale.getDefault()).format(Date(it))
                     } ?: "시간 정보 없음"
@@ -107,14 +113,22 @@ fun ChatRoomsScreen(
                         nickname = nickname,
                         lastMessage = lastMessage,
                         lastMessageTime = lastMessageTime,
-                        onChatRoomClick = { onChatRoomClick(chatRoom.id) },
-                        onDelete = { viewModel.deleteChatRoom(chatRoom.id) }
+                        onChatRoomClick = {
+                            viewModel.markMessagesAsRead(chatRoom.id)
+                            onChatRoomClick(chatRoom.id)
+                        },
+                        onDelete = { viewModel.deleteChatRoom(chatRoom.id) },
+                        isSeller = chatRoom.sellerId == currentUserId,
+                        newMessageCount = unreadCount
                     )
                 }
             }
         }
     }
 }
+
+
+
 @Composable
 fun SwipeToDeleteChatRoom(
     chatRoom: ChatRoom,
@@ -122,7 +136,9 @@ fun SwipeToDeleteChatRoom(
     lastMessage: String,
     lastMessageTime: String,
     onChatRoomClick: () -> Unit,
-    onDelete: () -> Unit
+    onDelete: () -> Unit,
+    isSeller: Boolean,
+    newMessageCount: Int
 ) {
     var offsetX by remember { mutableStateOf(0f) }
     val animatedOffsetX by animateFloatAsState(targetValue = offsetX)
@@ -134,16 +150,11 @@ fun SwipeToDeleteChatRoom(
             .pointerInput(Unit) {
                 detectHorizontalDragGestures(
                     onHorizontalDrag = { change, dragAmount ->
-                        change.consume() // 이벤트 소비
-                        offsetX = (offsetX + dragAmount).coerceIn(-200f, 0f) // 스와이프 제한
+                        change.consume()
+                        offsetX = (offsetX + dragAmount).coerceIn(-200f, 0f)
                     },
                     onDragEnd = {
-                        // 스와이프가 일정 거리 이상이면 삭제 버튼 고정
-                        if (offsetX < -100f) {
-                            offsetX = -200f
-                        } else {
-                            offsetX = 0f // 스와이프 취소
-                        }
+                        offsetX = if (offsetX < -100f) -200f else 0f
                     }
                 )
             }
@@ -172,52 +183,36 @@ fun SwipeToDeleteChatRoom(
                 nickname = nickname,
                 lastMessage = lastMessage,
                 lastMessageTime = lastMessageTime,
-                onClick = onChatRoomClick
+                onClick = onChatRoomClick,
+                isSeller = isSeller,
+                newMessageCount = newMessageCount
             )
         }
     }
 
-    // 팝업 다이얼로그
+    // 삭제 확인 다이얼로그
     if (showDialog) {
         DeletionConfirmationDialog(
             onConfirm = {
-                showDialog = false // 팝업 닫기
-                onDelete() // 삭제 동작 실행
+                showDialog = false
+                onDelete()
             },
             onDismiss = {
-                showDialog = false // 팝업 닫기
+                showDialog = false
             }
         )
     }
 }
-@Composable
-fun DeletionConfirmationDialog(
-    onConfirm: () -> Unit,
-    onDismiss: () -> Unit
-) {
-    AlertDialog(
-        onDismissRequest = { onDismiss() },
-        title = { Text(text = "삭제 확인") },
-        text = { Text(text = "정말로 삭제 하겠습니까?") },
-        confirmButton = {
-            Button(onClick = { onConfirm() }, colors = ButtonDefaults.buttonColors(containerColor = Color.Black)) {
-                Text("예", color = Color.White)
-            }
-        },
-        dismissButton = {
-            Button(onClick = { onDismiss() },colors = ButtonDefaults.buttonColors(containerColor = Color.Black)) {
-                Text("아니오", color = Color.White)
-            }
-        }
-    )
-}
+
 @Composable
 fun ChatRoomItem(
     chatRoom: ChatRoom,
     nickname: String,
     lastMessage: String,
     lastMessageTime: String,
-    onClick: () -> Unit
+    newMessageCount: Int,
+    onClick: () -> Unit,
+    isSeller: Boolean
 ) {
     Card(
         modifier = Modifier
@@ -228,18 +223,46 @@ fun ChatRoomItem(
     ) {
         Row(
             modifier = Modifier
-                .padding(16.dp)
+                .padding(8.dp)
                 .fillMaxWidth(),
             horizontalArrangement = Arrangement.spacedBy(12.dp)
         ) {
-            // 고정 크기의 채팅방 이미지
-            AsyncImage(
-                model = chatRoom.imageUrl,
-                contentDescription = "채팅방 사진",
-                modifier = Modifier
-                    .size(80.dp) // 크기를 고정하여 일정하게 유지
-                    .clip(MaterialTheme.shapes.medium) // 이미지 모서리를 둥글게 설정 (선택 사항)
-            )
+            Column(
+                horizontalAlignment = Alignment.CenterHorizontally
+            ) {
+                Box(modifier = Modifier.size(80.dp)) {
+                    AsyncImage(
+                        model = chatRoom.imageUrl,
+                        contentDescription = "채팅방 사진",
+                        modifier = Modifier
+                            .size(80.dp)
+                            .clip(MaterialTheme.shapes.medium)
+                    )
+                    if (newMessageCount > 0) {
+                        Box(
+                            modifier = Modifier
+                                .align(Alignment.TopEnd)
+                                .size(24.dp)
+                                .background(Color.Red, shape = MaterialTheme.shapes.small),
+                            contentAlignment = Alignment.Center
+                        ) {
+                            Text(
+                                text = newMessageCount.toString(),
+                                color = Color.White,
+                                fontWeight = FontWeight.Bold,
+                                style = MaterialTheme.typography.bodySmall
+                            )
+                        }
+                    }
+                }
+
+                Text(
+                    text = if (isSeller) "판매물품" else "구매물품",
+                    style = MaterialTheme.typography.bodySmall,
+                    fontWeight = FontWeight.Bold,
+                    color = if (isSeller) Color.Red else Color.Green
+                )
+            }
 
             Column(
                 modifier = Modifier
@@ -247,23 +270,18 @@ fun ChatRoomItem(
                     .padding(vertical = 4.dp),
                 verticalArrangement = Arrangement.spacedBy(8.dp)
             ) {
-                // 판매자 닉네임
                 Text(
-                    text = "판매자: $nickname",
+                    text = nickname,
                     style = MaterialTheme.typography.bodyLarge,
                     fontWeight = FontWeight.Bold,
                     color = MaterialTheme.colorScheme.onSurface
                 )
-
-                // 마지막 메시지
                 Text(
                     text = lastMessage,
                     style = MaterialTheme.typography.bodyMedium,
                     color = MaterialTheme.colorScheme.onSurface.copy(alpha = 0.7f),
-                    maxLines = 1 // 한 줄만 표시
+                    maxLines = 1
                 )
-
-                // 마지막 메시지 시간
                 Text(
                     text = lastMessageTime,
                     style = MaterialTheme.typography.bodySmall,
@@ -274,3 +292,31 @@ fun ChatRoomItem(
     }
 }
 
+
+@Composable
+fun DeletionConfirmationDialog(
+    onConfirm: () -> Unit,
+    onDismiss: () -> Unit
+) {
+    AlertDialog(
+        onDismissRequest = { onDismiss() },
+        title = { Text(text = "삭제 확인") },
+        text = { Text(text = "정말로 삭제 하겠습니까?") },
+        confirmButton = {
+            Button(
+                onClick = { onConfirm() },
+                colors = ButtonDefaults.buttonColors(containerColor = Color.Red)
+            ) {
+                Text("예", color = Color.White)
+            }
+        },
+        dismissButton = {
+            Button(
+                onClick = { onDismiss() },
+                colors = ButtonDefaults.buttonColors(containerColor = Color.Gray)
+            ) {
+                Text("아니오", color = Color.White)
+            }
+        }
+    )
+}

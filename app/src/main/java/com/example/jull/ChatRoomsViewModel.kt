@@ -1,3 +1,5 @@
+
+
 import androidx.lifecycle.ViewModel
 import com.example.jull.ChatRoom
 import com.example.jull.Message
@@ -18,6 +20,9 @@ class ChatRoomsViewModel : ViewModel() {
     private val _lastMessages = MutableStateFlow<Map<String, Triple<Message, String, String>>>(emptyMap())
     val lastMessages: StateFlow<Map<String, Triple<Message, String, String>>> = _lastMessages
 
+    private val _unreadMessageCounts = MutableStateFlow<Map<String, Int>>(emptyMap())
+    val unreadMessageCounts: StateFlow<Map<String, Int>> = _unreadMessageCounts
+
     init {
         loadChatRooms()
     }
@@ -25,30 +30,42 @@ class ChatRoomsViewModel : ViewModel() {
     private fun loadChatRooms() {
         currentUserId?.let { userId ->
             firestore.collection("chatRooms")
-                .whereIn("buyerId", listOf(userId))
-                .addSnapshotListener { snapshot, _ ->
-                    val buyerRooms = snapshot?.documents?.mapNotNull { doc ->
+                .whereIn("buyerId", listOf(userId)) // 현재 사용자가 구매자인 경우
+                .addSnapshotListener { buyerSnapshot, buyerError ->
+                    if (buyerError != null) {
+                        println("Error loading buyer chat rooms: ${buyerError.message}")
+                        return@addSnapshotListener
+                    }
+
+                    val buyerRooms = buyerSnapshot?.documents?.mapNotNull { doc ->
                         doc.toObject(ChatRoom::class.java)?.copy(
                             id = doc.id,
-                            imageUrl = doc.getString("itemPhotoUrl") ?: ""
+                            imageUrl = doc.getString("itemPhotoUrl") ?: "" // 사진 URL 가져오기
                         )
                     } ?: emptyList()
 
                     firestore.collection("chatRooms")
-                        .whereEqualTo("sellerId", userId)
-                        .addSnapshotListener { sellerSnapshot, _ ->
+                        .whereEqualTo("sellerId", userId) // 현재 사용자가 판매자인 경우
+                        .addSnapshotListener { sellerSnapshot, sellerError ->
+                            if (sellerError != null) {
+                                println("Error loading seller chat rooms: ${sellerError.message}")
+                                return@addSnapshotListener
+                            }
+
                             val sellerRooms = sellerSnapshot?.documents?.mapNotNull { doc ->
                                 doc.toObject(ChatRoom::class.java)?.copy(
                                     id = doc.id,
-                                    imageUrl = doc.getString("itemPhotoUrl") ?: ""
+                                    imageUrl = doc.getString("itemPhotoUrl") ?: "" // 사진 URL 가져오기
                                 )
                             } ?: emptyList()
 
+                            // 구매자와 판매자로 참여한 채팅방 병합
                             val combinedRooms = (buyerRooms + sellerRooms).distinctBy { it.id }
                             _chatRooms.value = combinedRooms
 
-                            // Load last messages and seller nicknames
+                            // 추가 데이터 로드
                             loadLastMessagesAndNicknames(combinedRooms.map { it.id })
+                            loadUnreadMessageCounts(combinedRooms.map { it.id })
                         }
                 }
         }
@@ -71,20 +88,81 @@ class ChatRoomsViewModel : ViewModel() {
                             .get()
                             .addOnSuccessListener { chatRoomDoc ->
                                 val sellerId = chatRoomDoc.getString("sellerId") ?: "Unknown"
+                                val buyerId = chatRoomDoc.getString("buyerId") ?: "Unknown"
 
-                                // Realtime Database에서 판매자 닉네임 가져오기
+                                // 판매자와 구매자 닉네임 가져오기
                                 realtimeDatabase.child("users").child(sellerId).child("nickname")
                                     .get()
-                                    .addOnSuccessListener { dataSnapshot ->
-                                        val sellerNickname = dataSnapshot.getValue(String::class.java) ?: "알 수 없음"
-                                        messagesMap[chatRoomId] = Triple(lastMessage, sellerNickname, sellerId)
-                                        _lastMessages.value = messagesMap.toMap()
+                                    .addOnSuccessListener { sellerSnapshot ->
+                                        val sellerNickname = sellerSnapshot.getValue(String::class.java) ?: "알 수 없음"
+
+                                        realtimeDatabase.child("users").child(buyerId).child("nickname")
+                                            .get()
+                                            .addOnSuccessListener { buyerSnapshot ->
+                                                val buyerNickname = buyerSnapshot.getValue(String::class.java) ?: "알 수 없음"
+
+                                                messagesMap[chatRoomId] =
+                                                    Triple(lastMessage, sellerNickname, buyerNickname)
+                                                _lastMessages.value = messagesMap.toMap()
+                                            }
                                     }
                             }
                     }
                 }
         }
     }
+
+    private fun loadUnreadMessageCounts(chatRoomIds: List<String>) {
+        val unreadCountsMap = mutableMapOf<String, Int>()
+
+        chatRoomIds.forEach { chatRoomId ->
+            firestore.collection("chatRooms")
+                .document(chatRoomId)
+                .collection("messages")
+                .addSnapshotListener { snapshot, error ->
+                    if (error != null) {
+                        println("Error loading unread message count for $chatRoomId: ${error.message}")
+                        return@addSnapshotListener
+                    }
+
+                    if (snapshot != null) {
+                        // 클라이언트 쪽에서 읽지 않은 메시지와 상대방의 메시지를 필터링
+                        val unreadCount = snapshot.documents.count { document ->
+                            val readBy = document.get("readBy") as? List<String> ?: emptyList()
+                            val senderId = document.getString("senderId")
+                            !readBy.contains(currentUserId) && senderId != currentUserId // 읽지 않았고, 내가 보낸 메시지가 아님
+                        }
+                        unreadCountsMap[chatRoomId] = unreadCount
+                        _unreadMessageCounts.value = unreadCountsMap.toMap()
+                    }
+                }
+        }
+    }
+
+    fun markMessagesAsRead(chatRoomId: String) {
+        currentUserId?.let { userId ->
+            firestore.collection("chatRooms")
+                .document(chatRoomId)
+                .collection("messages")
+                .get()
+                .addOnSuccessListener { snapshot ->
+                    for (doc in snapshot.documents) {
+                        val readBy = (doc["readBy"] as? List<String>)?.toMutableList() ?: mutableListOf()
+                        val senderId = doc.getString("senderId")
+
+                        // 읽지 않은 메시지이면서 상대방이 보낸 메시지인지 확인
+                        if (!readBy.contains(userId) && senderId != userId) {
+                            readBy.add(userId)
+                            doc.reference.update("readBy", readBy)
+                        }
+                    }
+                    // 읽음 처리 후 카운트 업데이트
+                    loadUnreadMessageCounts(listOf(chatRoomId))
+                }
+        }
+    }
+
+
     fun deleteChatRoom(chatRoomId: String) {
         firestore.collection("chatRooms").document(chatRoomId)
             .delete()
@@ -96,3 +174,8 @@ class ChatRoomsViewModel : ViewModel() {
             }
     }
 }
+
+
+
+
+

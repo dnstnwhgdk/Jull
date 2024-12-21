@@ -170,7 +170,6 @@ fun My() {
             Box(
                 modifier = Modifier
                     .fillMaxSize()
-
             ) {
                 when (selectedTabIndex) {
                     0 -> ProfileScreen(userInfoList)
