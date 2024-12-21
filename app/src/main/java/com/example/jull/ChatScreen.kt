@@ -1,9 +1,11 @@
 
 
 import android.net.Uri
+import androidx.activity.compose.LocalOnBackPressedDispatcherOwner
 import androidx.activity.compose.rememberLauncherForActivityResult
 import androidx.activity.result.contract.ActivityResultContracts
 import androidx.compose.foundation.background
+import androidx.compose.foundation.clickable
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
@@ -22,6 +24,7 @@ import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.filled.Add
 import androidx.compose.material.icons.filled.ArrowBack
+import androidx.compose.material.icons.filled.Close
 import androidx.compose.material3.Button
 import androidx.compose.material3.ButtonDefaults
 import androidx.compose.material3.ExperimentalMaterial3Api
@@ -40,6 +43,7 @@ import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
 import androidx.compose.runtime.rememberCoroutineScope
 import androidx.compose.runtime.setValue
+import androidx.compose.runtime.snapshotFlow
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
@@ -48,6 +52,7 @@ import androidx.compose.ui.text.TextStyle
 import androidx.compose.ui.text.input.TextFieldValue
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
+import androidx.compose.ui.window.Dialog
 import coil.compose.AsyncImage
 import com.google.firebase.auth.FirebaseAuth
 import com.google.firebase.firestore.FirebaseFirestore
@@ -65,6 +70,8 @@ fun ChatScreen(chatRoomId: String, onBackClick: () -> Unit) {
     val scope = rememberCoroutineScope()
     var messageText by remember { mutableStateOf(TextFieldValue("")) }
     var selectedImageUri by remember { mutableStateOf<Uri?>(null) }
+    var enlargedImageUrl by remember { mutableStateOf<String?>(null) } // 팝업용 이미지 URL
+    val backPressedDispatcher = LocalOnBackPressedDispatcherOwner.current?.onBackPressedDispatcher
 
     // 이미지 선택 런처
     val imagePickerLauncher = rememberLauncherForActivityResult(
@@ -97,31 +104,57 @@ fun ChatScreen(chatRoomId: String, onBackClick: () -> Unit) {
             }
     }
 
-    Scaffold(
-        topBar = {
-            Column {
-                TopAppBar(
-                    title = { Text("채팅방") },
-                    navigationIcon = {
-                        IconButton(onClick = onBackClick) {
-                            Icon(imageVector = Icons.Filled.ArrowBack, contentDescription = "뒤로가기")
+    // 읽음 처리: 스크롤이 메시지의 끝에 도달했을 때만 처리
+    LaunchedEffect(listState) {
+        snapshotFlow { listState.layoutInfo.visibleItemsInfo }
+            .collect { visibleItems ->
+                if (visibleItems.isNotEmpty() && visibleItems.last().index == messages.lastIndex) {
+                    messages.forEachIndexed { index, message ->
+                        val readBy = message["readBy"] as? List<String> ?: emptyList()
+                        if (!readBy.contains(currentUserId)) {
+                            firestore.collection("chatRooms")
+                                .document(chatRoomId)
+                                .collection("messages")
+                                .document(index.toString()) // 메시지 ID에 맞게 수정 필요
+                                .update("readBy", readBy + currentUserId)
                         }
                     }
-                )
-                Box(
-                    modifier = Modifier
-                        .fillMaxWidth()
-                        .height(1.dp)
-                        .background(Color.LightGray)
-                )
+                }
             }
+    }
+
+    Scaffold(
+        topBar = {
+            TopAppBar(
+                title = { Text("채팅방") },
+                navigationIcon = {
+                    IconButton(
+                        onClick = {
+                            backPressedDispatcher?.onBackPressed()
+                        }
+                    ) {
+                        Icon(
+                            imageVector = Icons.Filled.ArrowBack,
+                            contentDescription = "뒤로가기"
+                        )
+                    }
+                }
+            )
         }
     ) { padding ->
         Column(
-            modifier = Modifier.fillMaxSize()
+            modifier = Modifier
+                .fillMaxSize()
+                .padding(top = 100.dp)
         ) {
+            Box(
+                modifier = Modifier
+                    .fillMaxWidth()
+                    .height(1.dp)
+                    .background(MaterialTheme.colorScheme.onSurface.copy(alpha = 0.2f))
+            )
             LazyColumn(
-                state = listState,
+                state = listState, // 스크롤 상태 연결
                 modifier = Modifier.weight(1f),
                 reverseLayout = false
             ) {
@@ -135,7 +168,13 @@ fun ChatScreen(chatRoomId: String, onBackClick: () -> Unit) {
                     val imageUrl = message["imageUrl"] as? String
 
                     if (imageUrl != null) {
-                        ImageBubble(imageUrl = imageUrl, isCurrentUser = isCurrentUser, timestamp = timestamp, isRead = isRead)
+                        ImageBubble(
+                            imageUrl = imageUrl,
+                            isCurrentUser = isCurrentUser,
+                            timestamp = timestamp,
+                            isRead = isRead,
+                            onImageClick = { enlargedImageUrl = imageUrl } // 클릭 시 이미지 URL 설정
+                        )
                     } else {
                         MessageBubble(
                             content = content,
@@ -155,8 +194,7 @@ fun ChatScreen(chatRoomId: String, onBackClick: () -> Unit) {
             Row(
                 modifier = Modifier
                     .fillMaxWidth()
-                    .padding(8.dp),
-                verticalAlignment = Alignment.CenterVertically
+                    .padding(8.dp)
             ) {
                 IconButton(
                     onClick = {
@@ -177,16 +215,10 @@ fun ChatScreen(chatRoomId: String, onBackClick: () -> Unit) {
                     value = messageText,
                     onValueChange = { messageText = it },
                     placeholder = { Text("메시지를 입력하세요...") },
-                    modifier = Modifier
-                        .weight(1f)
-                        .clip(RoundedCornerShape(24.dp))
-                        .background(Color(0xFFF0F0F0))
-                        .padding(horizontal = 8.dp),
-                    singleLine = true,
+                    modifier = Modifier.weight(1f),
+                    singleLine = true
                 )
-
                 Spacer(modifier = Modifier.width(8.dp))
-
                 Button(
                     onClick = {
                         if (messageText.text.isNotBlank()) {
@@ -194,60 +226,63 @@ fun ChatScreen(chatRoomId: String, onBackClick: () -> Unit) {
                                 val newMessage = mapOf(
                                     "senderId" to currentUserId,
                                     "content" to messageText.text,
-                                    "timestamp" to System.currentTimeMillis()
+                                    "timestamp" to System.currentTimeMillis(),
+                                    "readBy" to listOf(currentUserId)
                                 )
                                 firestore.collection("chatRooms")
                                     .document(chatRoomId)
                                     .collection("messages")
                                     .add(newMessage)
-                                messageText = TextFieldValue("")
+                                messageText = TextFieldValue("") // 입력 필드 초기화
                             }
                         }
                     },
-                    modifier = Modifier.size(48.dp),
-                    shape = RoundedCornerShape(24.dp),
                     colors = ButtonDefaults.buttonColors(
                         containerColor = Color.Black,
                         contentColor = Color.White
                     )
                 ) {
-                    Text("→", color = Color.White, fontSize = 24.sp)
+                    Text(text = "→")
+                }
+            }
+        }
+    }
+    //이미지 팝업
+    // 이미지 팝업
+    if (enlargedImageUrl != null) {
+        Dialog(onDismissRequest = { enlargedImageUrl = null }) {
+            Box(
+                contentAlignment = Alignment.Center,
+                modifier = Modifier
+                    .fillMaxSize()
+                    .background(Color.Black.copy(alpha = 0.8f))
+            ) {
+                AsyncImage(
+                    model = enlargedImageUrl,
+                    contentDescription = "Enlarged Image",
+                    modifier = Modifier
+                        .size(300.dp)
+                        .clip(RoundedCornerShape(16.dp))
+                )
+                IconButton(
+                    onClick = { enlargedImageUrl = null },
+                    modifier = Modifier
+                        .align(Alignment.TopEnd)
+                        .padding(16.dp)
+                ) {
+                    Icon(
+                        imageVector = Icons.Default.Close,
+                        contentDescription = "닫기",
+                        tint = Color.White
+                    )
                 }
             }
         }
     }
 }
 
-// 이미지 업로드 및 메시지 전송
-fun uploadImageAndSendMessage(
-    uri: Uri,
-    chatRoomId: String,
-    currentUserId: String,
-    firestore: FirebaseFirestore,
-    storage: FirebaseStorage
-) {
-    val storageRef = storage.reference.child("chatImages/${System.currentTimeMillis()}.jpg")
-    storageRef.putFile(uri)
-        .addOnSuccessListener {
-            storageRef.downloadUrl.addOnSuccessListener { downloadUrl ->
-                val newMessage = mapOf(
-                    "senderId" to currentUserId,
-                    "imageUrl" to downloadUrl.toString(),
-                    "timestamp" to System.currentTimeMillis()
-                )
-                firestore.collection("chatRooms")
-                    .document(chatRoomId)
-                    .collection("messages")
-                    .add(newMessage)
-            }
-        }
-        .addOnFailureListener { exception ->
-            println("이미지 업로드 실패: ${exception.message}")
-        }
-}
-
 @Composable
-fun ImageBubble(imageUrl: String, isCurrentUser: Boolean, timestamp: Long, isRead: Boolean) {
+fun ImageBubble(imageUrl: String, isCurrentUser: Boolean, timestamp: Long, isRead: Boolean, onImageClick: () -> Unit) {
     val timeText = remember(timestamp) {
         val sdf = java.text.SimpleDateFormat("HH:mm", java.util.Locale.getDefault())
         sdf.format(java.util.Date(timestamp))
@@ -264,6 +299,7 @@ fun ImageBubble(imageUrl: String, isCurrentUser: Boolean, timestamp: Long, isRea
                 modifier = Modifier
                     .clip(RoundedCornerShape(12.dp))
                     .background(if (isCurrentUser) Color(0xFFDCF8C6) else Color(0xFFE5E5EA))
+                    .clickable { onImageClick() }
             ) {
                 AsyncImage(
                     model = imageUrl,
@@ -322,7 +358,7 @@ fun MessageBubble(content: String, isCurrentUser: Boolean, timestamp: Long, isRe
                     text = timeText,
                     style = TextStyle(fontSize = 12.sp, color = Color.Gray)
                 )
-                if (isCurrentUser && isRead) {
+                if (isRead) {
                     Spacer(modifier = Modifier.width(8.dp))
                     Text(
                         text = "읽음",
@@ -332,4 +368,32 @@ fun MessageBubble(content: String, isCurrentUser: Boolean, timestamp: Long, isRe
             }
         }
     }
+}
+
+// 이미지 업로드 및 메시지 전송
+fun uploadImageAndSendMessage(
+    uri: Uri,
+    chatRoomId: String,
+    currentUserId: String,
+    firestore: FirebaseFirestore,
+    storage: FirebaseStorage
+) {
+    val storageRef = storage.reference.child("chatImages/${System.currentTimeMillis()}.jpg")
+    storageRef.putFile(uri)
+        .addOnSuccessListener {
+            storageRef.downloadUrl.addOnSuccessListener { downloadUrl ->
+                val newMessage = mapOf(
+                    "senderId" to currentUserId,
+                    "imageUrl" to downloadUrl.toString(),
+                    "timestamp" to System.currentTimeMillis()
+                )
+                firestore.collection("chatRooms")
+                    .document(chatRoomId)
+                    .collection("messages")
+                    .add(newMessage)
+            }
+        }
+        .addOnFailureListener { exception ->
+            println("이미지 업로드 실패: ${exception.message}")
+        }
 }
