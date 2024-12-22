@@ -153,6 +153,7 @@ fun ChatScreen(chatRoomId: String, onBackClick: () -> Unit) {
                     .height(1.dp)
                     .background(MaterialTheme.colorScheme.onSurface.copy(alpha = 0.2f))
             )
+            Spacer(modifier = Modifier.height(8.dp))
             LazyColumn(
                 state = listState, // 스크롤 상태 연결
                 modifier = Modifier.weight(1f),
@@ -315,7 +316,7 @@ fun ImageBubble(imageUrl: String, isCurrentUser: Boolean, timestamp: Long, isRea
                     text = timeText,
                     style = TextStyle(fontSize = 12.sp, color = Color.Gray)
                 )
-                if (isCurrentUser && isRead) {
+                if (isRead) {
                     Spacer(modifier = Modifier.width(8.dp))
                     Text(
                         text = "읽음",
