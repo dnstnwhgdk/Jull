@@ -23,6 +23,9 @@ class ChatRoomsViewModel : ViewModel() {
     private val _unreadMessageCounts = MutableStateFlow<Map<String, Int>>(emptyMap())
     val unreadMessageCounts: StateFlow<Map<String, Int>> = _unreadMessageCounts
 
+    private val _totalUnreadCount = MutableStateFlow(0)
+    val totalUnreadCount: StateFlow<Int> = _totalUnreadCount
+
     init {
         loadChatRooms()
     }
@@ -126,14 +129,19 @@ class ChatRoomsViewModel : ViewModel() {
                     }
 
                     if (snapshot != null) {
-                        // 클라이언트 쪽에서 읽지 않은 메시지와 상대방의 메시지를 필터링
+                        // 읽지 않은 메시지 필터링
                         val unreadCount = snapshot.documents.count { document ->
                             val readBy = document.get("readBy") as? List<String> ?: emptyList()
                             val senderId = document.getString("senderId")
-                            !readBy.contains(currentUserId) && senderId != currentUserId // 읽지 않았고, 내가 보낸 메시지가 아님
+                            !readBy.contains(currentUserId) && senderId != currentUserId // 읽지 않았고 내가 보낸 메시지가 아님
                         }
                         unreadCountsMap[chatRoomId] = unreadCount
+
+                        // 상태 업데이트
                         _unreadMessageCounts.value = unreadCountsMap.toMap()
+
+                        // 총 안 읽은 메시지 수 업데이트
+                        _totalUnreadCount.value = _unreadMessageCounts.value.values.sum()
                     }
                 }
         }
