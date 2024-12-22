@@ -14,6 +14,7 @@ import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.height
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.size
+import androidx.compose.foundation.lazy.LazyColumn
 import androidx.compose.foundation.rememberScrollState
 import androidx.compose.foundation.verticalScroll
 import androidx.compose.material.icons.Icons
@@ -46,11 +47,20 @@ import androidx.compose.ui.Modifier
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.platform.LocalFocusManager
+import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import com.google.accompanist.flowlayout.FlowRow
+import com.google.firebase.auth.FirebaseAuth
 import com.google.firebase.firestore.FirebaseFirestore
 import com.google.firebase.firestore.Query
+import androidx.compose.foundation.layout.*
+import androidx.compose.material3.Card
+import androidx.compose.foundation.lazy.items
+import androidx.compose.material3.CardDefaults
+import java.text.SimpleDateFormat
+import java.util.Locale
+import androidx.compose.material3.rememberModalBottomSheetState
 
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
@@ -66,7 +76,9 @@ fun Home() {
     var showCategorySheet by remember { mutableStateOf(false) }
     var selectedCategories by remember { mutableStateOf<List<String>>(emptyList()) }
     val focusManager = LocalFocusManager.current
-
+    var showNotifications by remember { mutableStateOf(false) }
+    var notifications by remember { mutableStateOf<List<Item>>(emptyList()) }
+    val currentUser = FirebaseAuth.getInstance().currentUser
     val brandTypes = listOf(
         BrandType("국내 브랜드", listOf("Altonics", "Amsterdam cream",
             "Artec", "BIGRIG", "Gopherwood", "hushh", "Macron Audio", "Modegear",
@@ -136,6 +148,40 @@ fun Home() {
             }
     }
 
+    // notifications 데이터 로드를 위한 LaunchedEffect 추가
+    LaunchedEffect(Unit) {
+        if (currentUser != null) {
+            FirebaseFirestore.getInstance()
+                .collection("notificationKeywords")
+                .whereEqualTo("userId", currentUser.uid)
+                .addSnapshotListener { snapshot, _ ->
+                    if (snapshot != null) {
+                        val keywords = snapshot.documents.mapNotNull { doc ->
+                            doc.getString("keyword")
+                        }
+
+                        if (keywords.isNotEmpty()) {
+                            FirebaseFirestore.getInstance()
+                                .collection("items")
+                                .orderBy("createdAt", Query.Direction.DESCENDING)
+                                .addSnapshotListener { itemsSnapshot, _ ->
+                                    if (itemsSnapshot != null) {
+                                        notifications = itemsSnapshot.documents.mapNotNull { doc ->
+                                            val item = Item.fromMap(doc.id, doc.data ?: emptyMap())
+                                            if (keywords.any { keyword ->
+                                                    item.title.contains(keyword, ignoreCase = true)
+                                                }) {
+                                                item
+                                            } else null
+                                        }
+                                    }
+                                }
+                        }
+                    }
+                }
+        }
+    }
+
     LaunchedEffect(searchText, selectedCategories, selectedButtonIndex, originalItems) {
         val searchFiltered = if (searchText.isEmpty()) originalItems
         else originalItems.filter { item ->
@@ -189,7 +235,7 @@ fun Home() {
                         }
                     }
                 )
-                IconButton(onClick = { /* 추후 기능 추가 예정 */ }) {
+                IconButton(onClick = { showNotifications = true }) {
                     Icon(Icons.Default.Notifications, contentDescription = "알림")
                 }
             }
@@ -236,15 +282,15 @@ fun Home() {
                     ) {
                         Text(
                             text = text,
-                            fontSize = 12.sp,  // 폰트 크기 줄임
-                            maxLines = 1,      // 한 줄로 표시
-                            modifier = Modifier.padding(horizontal = 2.dp)  // 좌우 패딩 줄임
+                            fontSize = 12.sp,
+                            maxLines = 1,
+                            modifier = Modifier.padding(horizontal = 2.dp)
                         )
                     }
                 }
             }
-
         }
+
         Box(
             modifier = Modifier
                 .fillMaxWidth()
@@ -261,6 +307,7 @@ fun Home() {
                     CircularProgressIndicator()
                 }
             }
+
             errorMessage != null -> {
                 Box(
                     modifier = Modifier.fillMaxSize(),
@@ -269,6 +316,7 @@ fun Home() {
                     Text(errorMessage ?: "오류가 발생했습니다")
                 }
             }
+
             filteredItems.isEmpty() -> {
                 Box(
                     modifier = Modifier.fillMaxSize(),
@@ -277,6 +325,7 @@ fun Home() {
                     Text("등록된 상품이 없습니다")
                 }
             }
+
             else -> {
                 ItemBord(
                     items = filteredItems,
@@ -298,8 +347,107 @@ fun Home() {
                 )
             }
         }
-    }
 
+        if (showNotifications) {
+            val sheetState = rememberModalBottomSheetState(
+                skipPartiallyExpanded = true  // 부분 확장 건너뛰기
+            )
+
+            LaunchedEffect(sheetState) {
+                sheetState.expand()  // 시트를 자동으로 확장
+            }
+
+            ModalBottomSheet(
+                onDismissRequest = { showNotifications = false },
+                containerColor = MaterialTheme.colorScheme.surface,
+                modifier = Modifier.fillMaxHeight(0.95f),  // 화면의 95%를 차지하도록 높이 증가
+                sheetState = sheetState,  // sheetState 적용
+                windowInsets = WindowInsets(0),
+            ) {
+                Column(
+                    modifier = Modifier
+                        .fillMaxWidth()
+                        .fillMaxHeight()  // 전체 높이 사용
+                        .padding(16.dp)
+                ) {
+                    Text(
+                        "알림 목록",
+                        style = MaterialTheme.typography.titleLarge,
+                        fontWeight = FontWeight.Bold,
+                        modifier = Modifier.padding(bottom = 16.dp)
+                    )
+
+                    if (notifications.isEmpty()) {
+                        Box(
+                            modifier = Modifier
+                                .fillMaxWidth()
+                                .weight(1f)  // 남은 공간 채우기
+                                .padding(vertical = 32.dp),
+                            contentAlignment = Alignment.Center
+                        ) {
+                            Text("새로운 알림이 없습니다")
+                        }
+                    } else {
+                        LazyColumn(
+                            verticalArrangement = Arrangement.spacedBy(8.dp),
+                            modifier = Modifier.weight(1f)  // 남은 공간 채우기
+                        ) {
+                            items(notifications) { item ->
+                                Card(
+                                    modifier = Modifier
+                                        .fillMaxWidth()
+                                        .clickable {
+                                            val intent = Intent(
+                                                context,
+                                                ItemDetailActivity::class.java
+                                            ).apply {
+                                                putExtra("imageUrl", item.imageUrl)
+                                                putExtra("title", item.title)
+                                                putExtra("price", item.price)
+                                                putExtra("brandCategory", item.brandCategory)
+                                                putExtra("effecterType", item.effecterType)
+                                                putExtra("description", item.description)
+                                                putExtra("sellerId", item.sellerId)
+                                                putExtra("id", item.id)
+                                                putExtra("createdAt", item.createdAt)
+                                            }
+                                            context.startActivity(intent)
+                                            showNotifications = false
+                                        },
+                                    elevation = CardDefaults.cardElevation(
+                                        defaultElevation = 4.dp
+                                    )
+                                ) {
+                                    Column(modifier = Modifier.padding(16.dp)) {
+                                        Text(
+                                            "키워드가 포함된 상품이 등록되었습니다",
+                                            style = MaterialTheme.typography.bodySmall,
+                                            color = MaterialTheme.colorScheme.primary
+                                        )
+                                        Spacer(modifier = Modifier.height(4.dp))
+                                        Text(
+                                            item.title,
+                                            style = MaterialTheme.typography.titleMedium
+                                        )
+                                        Text(item.price)
+                                        Text(
+                                            SimpleDateFormat(
+                                                "yyyy-MM-dd HH:mm",
+                                                Locale.getDefault()
+                                            )
+                                                .format(item.createdAt),
+                                            style = MaterialTheme.typography.bodySmall,
+                                            color = MaterialTheme.colorScheme.onSurfaceVariant
+                                        )
+                                    }
+                                }
+                            }
+                        }
+                    }
+                }
+            }
+        }
+    }
     if (showCategorySheet) {
         ModalBottomSheet(
             onDismissRequest = { showCategorySheet = false },

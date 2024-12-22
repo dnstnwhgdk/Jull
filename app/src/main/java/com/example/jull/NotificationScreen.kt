@@ -132,62 +132,6 @@ fun NotificationScreen() {
         }
 
         Divider(modifier = Modifier.padding(vertical = 16.dp))
-
-        // 알림 목록
-        Text(
-            "알림 목록",
-            style = MaterialTheme.typography.titleMedium,
-            fontWeight = FontWeight.Bold
-        )
-
-        Spacer(modifier = Modifier.height(8.dp))
-
-        LazyColumn {
-            items(notifications) { item ->
-                Card(
-                    modifier = Modifier
-                        .fillMaxWidth()
-                        .padding(vertical = 8.dp)
-                        .clickable {
-                            val intent = Intent(context, ItemDetailActivity::class.java).apply {
-                                putExtra("imageUrl", item.imageUrl)
-                                putExtra("title", item.title)
-                                putExtra("price", item.price)
-                                putExtra("brandCategory", item.brandCategory)
-                                putExtra("effecterType", item.effecterType)
-                                putExtra("description", item.description)
-                                putExtra("sellerId", item.sellerId)
-                                putExtra("id", item.id)
-                                putExtra("createdAt", item.createdAt)
-                            }
-                            context.startActivity(intent)
-                        }
-                ) {
-                    Column(modifier = Modifier.padding(16.dp)) {
-                        Text(
-                            "키워드가 포함된 상품이 등록되었습니다",
-                            style = MaterialTheme.typography.bodySmall,
-                            color = MaterialTheme.colorScheme.primary
-                        )
-                        Spacer(modifier = Modifier.height(4.dp))
-                        Text(
-                            item.title,
-                            style = MaterialTheme.typography.titleMedium
-                        )
-                        Text(
-                            item.price,
-                            style = MaterialTheme.typography.bodyMedium
-                        )
-                        Text(
-                            SimpleDateFormat("yyyy-MM-dd HH:mm", Locale.getDefault())
-                                .format(item.createdAt),
-                            style = MaterialTheme.typography.bodySmall,
-                            color = MaterialTheme.colorScheme.onSurfaceVariant
-                        )
-                    }
-                }
-            }
-        }
     }
 
     if (showAddKeywordDialog) {
