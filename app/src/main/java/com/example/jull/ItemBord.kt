@@ -120,7 +120,7 @@ fun ItemBord(
                                             .fillMaxWidth()    // 너비를 최대로
                                             .aspectRatio(1f)   // 1:1 비율 유지
                                             .clip(RoundedCornerShape(8.dp)),
-                                        contentScale = ContentScale.FillWidth  // 너비에 맞춰 이미지를 채움
+                                        contentScale = ContentScale.Crop  // FillWidth 대신 Crop으로 변경하여 이미지를 채움
                                     )
 
                                     Row(

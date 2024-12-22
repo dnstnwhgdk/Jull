@@ -259,18 +259,18 @@ fun LoginScreen(navController: NavController) {
         RecoveryDialog(
             type = type,
             onDismiss = { showRecoveryDialog = null },
-            onSubmit = { input ->
+            onSubmit = { name, input ->
                 when (type) {
                     RecoveryType.ID -> {
-                        // Firebase Realtime Database에서 전체 사용자 데이터를 가져와서 클라이언트에서 필터링
                         val database = FirebaseDatabase.getInstance()
                         database.reference.child("users")
                             .get()
                             .addOnSuccessListener { snapshot ->
                                 var userEmail: String? = null
                                 snapshot.children.forEach { childSnapshot ->
+                                    val childName = childSnapshot.child("name").getValue(String::class.java)
                                     val childPhonenum = childSnapshot.child("phonenum").getValue(String::class.java)
-                                    if (childPhonenum == input) {
+                                    if (childName == name && childPhonenum == input) {
                                         userEmail = childSnapshot.child("email").getValue(String::class.java)
                                         return@forEach
                                     }
@@ -285,7 +285,7 @@ fun LoginScreen(navController: NavController) {
                                 } else {
                                     Toast.makeText(
                                         context,
-                                        "입력하신 번호로 가입된 계정이 없습니다",
+                                        "입력하신 정보와 일치하는 계정이 없습니다",
                                         Toast.LENGTH_SHORT
                                     ).show()
                                 }
@@ -316,12 +316,6 @@ fun LoginScreen(navController: NavController) {
                                         Toast.LENGTH_SHORT
                                     ).show()
                                 }
-                        } else {
-                            Toast.makeText(
-                                context,
-                                "올바른 이메일 형식이 아닙니다",
-                                Toast.LENGTH_SHORT
-                            ).show()
                         }
                     }
                 }
@@ -335,8 +329,9 @@ fun LoginScreen(navController: NavController) {
 fun RecoveryDialog(
     type: RecoveryType,
     onDismiss: () -> Unit,
-    onSubmit: (String) -> Unit
+    onSubmit: (String, String) -> Unit
 ) {
+    var name by remember { mutableStateOf("") }
     var input by remember { mutableStateOf("") }
     var isError by remember { mutableStateOf(false) }
 
@@ -344,26 +339,42 @@ fun RecoveryDialog(
         onDismissRequest = onDismiss,
         title = {
             Text(when (type) {
-                RecoveryType.ID -> "휴대폰 번호로 아이디 찾기"
+                RecoveryType.ID -> "이름과 휴대폰 번호로\n아이디 찾기"
                 RecoveryType.PASSWORD -> "비밀번호 재설정"
             })
         },
         text = {
             Column {
                 Text(when (type) {
-                    RecoveryType.ID -> "가입 시 등록한 휴대폰 번호를 입력해주세요"
+                    RecoveryType.ID -> "가입 시 등록한 이름과 휴대폰 번호를\n입력해주세요"
                     RecoveryType.PASSWORD -> "가입한 이메일 주소를 입력해주세요"
                 })
                 Spacer(modifier = Modifier.height(8.dp))
+
+                if (type == RecoveryType.ID) {
+                    // 이름 입력 필드
+                    OutlinedTextField(
+                        value = name,
+                        onValueChange = {
+                            name = it
+                            isError = false
+                        },
+                        placeholder = { Text("이름 입력") },
+                        modifier = Modifier.fillMaxWidth(),
+                        isError = isError,
+                        singleLine = true
+                    )
+
+                    Spacer(modifier = Modifier.height(8.dp))
+                }
+
                 OutlinedTextField(
                     value = input,
                     onValueChange = {
                         input = it
                         isError = false
                         if (type == RecoveryType.ID) {
-                            // 숫자만 입력되도록 필터링
                             input = it.filter { char -> char.isDigit() }
-                            // 11자리로 제한
                             if (input.length > 11) input = input.take(11)
                         }
                     },
@@ -385,7 +396,7 @@ fun RecoveryDialog(
                 if (isError) {
                     Text(
                         text = when (type) {
-                            RecoveryType.ID -> "올바른 휴대폰 번호를 입력해주세요"
+                            RecoveryType.ID -> "이름과 휴대폰 번호를 모두 올바르게 입력해주세요"
                             RecoveryType.PASSWORD -> "올바른 이메일 주소를 입력해주세요"
                         },
                         color = MaterialTheme.colorScheme.error,
@@ -399,15 +410,15 @@ fun RecoveryDialog(
                 onClick = {
                     when (type) {
                         RecoveryType.ID -> {
-                            if (input.length == 11) {
-                                onSubmit(input)
+                            if (name.isNotBlank() && input.length == 11) {
+                                onSubmit(name, input)
                             } else {
                                 isError = true
                             }
                         }
                         RecoveryType.PASSWORD -> {
                             if (input.contains("@")) {
-                                onSubmit(input)
+                                onSubmit("", input)
                             } else {
                                 isError = true
                             }
