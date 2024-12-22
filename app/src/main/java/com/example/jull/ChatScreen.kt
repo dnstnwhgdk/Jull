@@ -31,10 +31,8 @@ import androidx.compose.material3.ExperimentalMaterial3Api
 import androidx.compose.material3.Icon
 import androidx.compose.material3.IconButton
 import androidx.compose.material3.MaterialTheme
-import androidx.compose.material3.Scaffold
 import androidx.compose.material3.Text
 import androidx.compose.material3.TextField
-import androidx.compose.material3.TopAppBar
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.getValue
@@ -123,36 +121,34 @@ fun ChatScreen(chatRoomId: String, onBackClick: () -> Unit) {
             }
     }
 
-    Scaffold(
-        topBar = {
-            TopAppBar(
-                title = { Text("채팅방") },
-                navigationIcon = {
-                    IconButton(
-                        onClick = {
-                            backPressedDispatcher?.onBackPressed()
-                        }
-                    ) {
-                        Icon(
-                            imageVector = Icons.Filled.ArrowBack,
-                            contentDescription = "뒤로가기"
-                        )
+    Column {
+        Row {
+                IconButton(
+                    onClick = {
+                        backPressedDispatcher?.onBackPressed()
                     }
+                ) {
+                    Icon(
+                        imageVector = Icons.Filled.ArrowBack,
+                        contentDescription = "뒤로가기"
+                    )
                 }
-            )
+            Column {
+                Spacer(modifier = Modifier.height(8.dp))
+                Text("채팅방", style = MaterialTheme.typography.titleLarge)
+            }
+
         }
-    ) { padding ->
+        Box(
+            modifier = Modifier
+                .fillMaxWidth()
+                .height(1.dp)
+                .background(MaterialTheme.colorScheme.onSurface.copy(alpha = 0.2f))
+        )
         Column(
             modifier = Modifier
                 .fillMaxSize()
-                .padding(top = 100.dp)
         ) {
-            Box(
-                modifier = Modifier
-                    .fillMaxWidth()
-                    .height(1.dp)
-                    .background(MaterialTheme.colorScheme.onSurface.copy(alpha = 0.2f))
-            )
             Spacer(modifier = Modifier.height(8.dp))
             LazyColumn(
                 state = listState, // 스크롤 상태 연결
