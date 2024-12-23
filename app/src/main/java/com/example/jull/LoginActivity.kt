@@ -100,11 +100,11 @@ fun MainNavigatorScreen(viewModel: ChatRoomsViewModel = viewModel()) {
 @Composable
 fun BottomNavigationBar(navController: NavController, totalUnreadCount: Int) {
     val items = listOf(
-        BottomNavItem("home", "Home", Icons.Default.Home),
+        BottomNavItem("home", "홈", Icons.Default.Home),
         BottomNavItem("board", "게시판", Icons.Default.Menu),
-        BottomNavItem("sell", "Sell", Icons.Default.Add),
-        BottomNavItem("message", "Message", Icons.Default.MailOutline),
-        BottomNavItem("my", "MY", Icons.Default.Person)
+        BottomNavItem("sell", "판매등록", Icons.Default.Add),
+        BottomNavItem("message", "채팅", Icons.Default.MailOutline),
+        BottomNavItem("my", "내정보", Icons.Default.Person)
     )
 
     NavigationBar(
