@@ -148,7 +148,6 @@ fun Home() {
             }
     }
 
-    // notifications 데이터 로드를 위한 LaunchedEffect 추가
     LaunchedEffect(Unit) {
         if (currentUser != null) {
             FirebaseFirestore.getInstance()
@@ -360,14 +359,14 @@ fun Home() {
             ModalBottomSheet(
                 onDismissRequest = { showNotifications = false },
                 containerColor = MaterialTheme.colorScheme.surface,
-                modifier = Modifier.fillMaxHeight(0.95f),  // 화면의 95%를 차지하도록 높이 증가
-                sheetState = sheetState,  // sheetState 적용
+                modifier = Modifier.fillMaxHeight(0.95f),
+                sheetState = sheetState,
                 windowInsets = WindowInsets(0),
             ) {
                 Column(
                     modifier = Modifier
                         .fillMaxWidth()
-                        .fillMaxHeight()  // 전체 높이 사용
+                        .fillMaxHeight()
                         .padding(16.dp)
                 ) {
                     Text(
@@ -381,7 +380,7 @@ fun Home() {
                         Box(
                             modifier = Modifier
                                 .fillMaxWidth()
-                                .weight(1f)  // 남은 공간 채우기
+                                .weight(1f)
                                 .padding(vertical = 32.dp),
                             contentAlignment = Alignment.Center
                         ) {
@@ -390,7 +389,7 @@ fun Home() {
                     } else {
                         LazyColumn(
                             verticalArrangement = Arrangement.spacedBy(8.dp),
-                            modifier = Modifier.weight(1f)  // 남은 공간 채우기
+                            modifier = Modifier.weight(1f)
                         ) {
                             items(notifications) { item ->
                                 Card(

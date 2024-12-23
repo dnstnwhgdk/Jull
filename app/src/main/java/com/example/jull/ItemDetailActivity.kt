@@ -82,7 +82,7 @@ class ItemDetailActivity : ComponentActivity() {
         val description = intent.getStringExtra("description") ?: ""
         val sellerId = intent.getStringExtra("sellerId") ?: ""
         val itemId = intent.getStringExtra("id") ?: ""
-        val tradeType = intent.getStringExtra("tradeType") ?: "택배거래"  // 이 부분이 추가되어야 함
+        val tradeType = intent.getStringExtra("tradeType") ?: "택배거래"
         val createdAt = (intent.getSerializableExtra("createdAt") as? Date) ?: Date()
 
         setContent {
@@ -330,14 +330,14 @@ fun ItemDetailScreen(
                             color = Color.Gray
                         )
                     }
-                    Column {  // Column으로 변경
+                    Column {
                         Text(
                             text = SimpleDateFormat("yyyy.MM.dd HH:mm", Locale.getDefault())
                                 .format(createdAt),
                             fontSize = 14.sp,
                             color = Color.Gray
                         )
-                        Text(  // 거래방식 표시 수정
+                        Text(
                             text = when (tradeType) {
                                 "택배거래" -> "택배거래"
                                 "직거래" -> "직거래"
@@ -463,7 +463,7 @@ fun ItemDetailScreen(
 
                         Spacer(modifier = Modifier.height(8.dp))
 
-                        // 수정하기와 삭제하기 버튼을 한 줄로
+                        // 수정하기와 삭제하기 버튼
                         Row(
                             modifier = Modifier
                                 .fillMaxWidth()
@@ -564,7 +564,7 @@ fun ItemDetailScreen(
                             )
                         }
 
-                        // 삭제 확인 대화상자 추가
+                        // 삭제 확인 대화상자
                         if (showDeleteDialog) {
                             AlertDialog(
                                 onDismissRequest = { showDeleteDialog = false },
@@ -605,7 +605,7 @@ fun ItemDetailScreen(
                     Button(
                         onClick = {
                             viewModel.findOrCreateChatRoom(
-                                itemId = title, // itemId가 필요하므로 title 대체 가능
+                                itemId = title,
                                 sellerId = sellerId,
                                 buyerId = currentUserId ?:"",
                                 onChatRoomFound = { chatRoomId ->

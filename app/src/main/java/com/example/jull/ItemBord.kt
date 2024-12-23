@@ -20,7 +20,6 @@ import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.layout.ContentScale
 import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.text.font.FontWeight
-import androidx.compose.ui.tooling.preview.Preview
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import coil.compose.AsyncImage
@@ -117,10 +116,10 @@ fun ItemBord(
                                         model = item.imageUrl.split(",").firstOrNull(),
                                         contentDescription = "상품 이미지",
                                         modifier = Modifier
-                                            .fillMaxWidth()    // 너비를 최대로
-                                            .aspectRatio(1f)   // 1:1 비율 유지
+                                            .fillMaxWidth()
+                                            .aspectRatio(1f)
                                             .clip(RoundedCornerShape(8.dp)),
-                                        contentScale = ContentScale.Crop  // FillWidth 대신 Crop으로 변경하여 이미지를 채움
+                                        contentScale = ContentScale.Crop
                                     )
 
                                     Row(

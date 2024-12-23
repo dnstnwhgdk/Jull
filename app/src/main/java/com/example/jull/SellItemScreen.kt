@@ -75,7 +75,7 @@ fun SellItemPage() {
     val storage = FirebaseStorage.getInstance()
     val firestore = FirebaseFirestore.getInstance()
     val auth = FirebaseAuth.getInstance()
-    var expanded by remember { mutableStateOf(false) }  // expanded 변수 추가
+    var expanded by remember { mutableStateOf(false) }
     var selectedTradeType by remember { mutableStateOf("택배거래") }
 
 
@@ -230,7 +230,7 @@ fun SellItemPage() {
                 }
             }
 
-            // 거래방식 선택 (Row 밖으로 이동됨)
+            // 거래방식 선택
             ExposedDropdownMenuBox(
                 expanded = expanded,
                 onExpandedChange = { expanded = !expanded },

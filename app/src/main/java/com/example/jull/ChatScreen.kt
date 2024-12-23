@@ -1,5 +1,3 @@
-
-
 import android.net.Uri
 import androidx.activity.compose.LocalOnBackPressedDispatcherOwner
 import androidx.activity.compose.rememberLauncherForActivityResult
@@ -57,18 +55,17 @@ import com.google.firebase.firestore.FirebaseFirestore
 import com.google.firebase.storage.FirebaseStorage
 import kotlinx.coroutines.launch
 
-@OptIn(ExperimentalMaterial3Api::class)
 @Composable
 fun ChatScreen(chatRoomId: String, onBackClick: () -> Unit) {
     val firestore = FirebaseFirestore.getInstance()
     val storage = FirebaseStorage.getInstance()
     val currentUserId = FirebaseAuth.getInstance().currentUser?.uid ?: "UnknownUser"
     val messages = remember { mutableStateListOf<Map<String, Any>>() }
-    val listState = rememberLazyListState() // 스크롤 상태 관리
+    val listState = rememberLazyListState()
     val scope = rememberCoroutineScope()
     var messageText by remember { mutableStateOf(TextFieldValue("")) }
     var selectedImageUri by remember { mutableStateOf<Uri?>(null) }
-    var enlargedImageUrl by remember { mutableStateOf<String?>(null) } // 팝업용 이미지 URL
+    var enlargedImageUrl by remember { mutableStateOf<String?>(null) }
     val backPressedDispatcher = LocalOnBackPressedDispatcherOwner.current?.onBackPressedDispatcher
 
     // 이미지 선택 런처
@@ -102,7 +99,7 @@ fun ChatScreen(chatRoomId: String, onBackClick: () -> Unit) {
             }
     }
 
-    // 읽음 처리: 스크롤이 메시지의 끝에 도달했을 때만 처리
+    // 읽음 처리
     LaunchedEffect(listState) {
         snapshotFlow { listState.layoutInfo.visibleItemsInfo }
             .collect { visibleItems ->
@@ -113,7 +110,7 @@ fun ChatScreen(chatRoomId: String, onBackClick: () -> Unit) {
                             firestore.collection("chatRooms")
                                 .document(chatRoomId)
                                 .collection("messages")
-                                .document(index.toString()) // 메시지 ID에 맞게 수정 필요
+                                .document(index.toString())
                                 .update("readBy", readBy + currentUserId)
                         }
                     }
@@ -151,7 +148,7 @@ fun ChatScreen(chatRoomId: String, onBackClick: () -> Unit) {
         ) {
             Spacer(modifier = Modifier.height(8.dp))
             LazyColumn(
-                state = listState, // 스크롤 상태 연결
+                state = listState,
                 modifier = Modifier.weight(1f),
                 reverseLayout = false
             ) {
@@ -170,7 +167,7 @@ fun ChatScreen(chatRoomId: String, onBackClick: () -> Unit) {
                             isCurrentUser = isCurrentUser,
                             timestamp = timestamp,
                             isRead = isRead,
-                            onImageClick = { enlargedImageUrl = imageUrl } // 클릭 시 이미지 URL 설정
+                            onImageClick = { enlargedImageUrl = imageUrl }
                         )
                     } else {
                         MessageBubble(
@@ -195,7 +192,7 @@ fun ChatScreen(chatRoomId: String, onBackClick: () -> Unit) {
             ) {
                 IconButton(
                     onClick = {
-                        imagePickerLauncher.launch("image/*") // 이미지 선택 런처 실행
+                        imagePickerLauncher.launch("image/*")
                     },
                     modifier = Modifier.size(48.dp)
                 ) {
@@ -230,7 +227,7 @@ fun ChatScreen(chatRoomId: String, onBackClick: () -> Unit) {
                                     .document(chatRoomId)
                                     .collection("messages")
                                     .add(newMessage)
-                                messageText = TextFieldValue("") // 입력 필드 초기화
+                                messageText = TextFieldValue("")
                             }
                         }
                     },
@@ -244,7 +241,7 @@ fun ChatScreen(chatRoomId: String, onBackClick: () -> Unit) {
             }
         }
     }
-    //이미지 팝업
+
     // 이미지 팝업
     if (enlargedImageUrl != null) {
         Dialog(onDismissRequest = { enlargedImageUrl = null }) {

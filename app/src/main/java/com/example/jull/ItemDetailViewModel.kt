@@ -36,7 +36,7 @@ class ItemDetailViewModel : ViewModel() {
                                 "senderId" to sellerId,
                                 "content" to "안녕하세요! 채팅을 시작해보세요.",
                                 "timestamp" to currentTime,
-                                "readBy" to listOf<String>() // 읽음 상태 초기화
+                                "readBy" to listOf<String>()
                             )
                             firestore.collection("chatRooms")
                                 .document(chatRoomId)

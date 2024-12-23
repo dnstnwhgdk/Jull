@@ -113,13 +113,13 @@ fun My() {
                 title = {
                     Text(
                         "마이페이지",
-                        style = MaterialTheme.typography.titleLarge,  // titleLarge 유지
-                        modifier = Modifier.padding(start = 4.dp, bottom = 4.dp)  // 하단 패딩 추가
+                        style = MaterialTheme.typography.titleLarge,
+                        modifier = Modifier.padding(start = 4.dp, bottom = 4.dp)
                     )
                 },
                 modifier = Modifier
                     .fillMaxWidth()
-                    .height(56.dp)  // TopAppBar 높이를 56.dp로 증가
+                    .height(56.dp)
             )
         }
     ) { paddingValues ->
@@ -130,12 +130,12 @@ fun My() {
         ) {
             ScrollableTabRow(
                 selectedTabIndex = selectedTabIndex,
-                edgePadding = 4.dp,  // 가장자리 패딩 축소
+                edgePadding = 4.dp,
                 containerColor = MaterialTheme.colorScheme.background,
                 contentColor = MaterialTheme.colorScheme.primary,
                 modifier = Modifier
                     .fillMaxWidth()
-                    .height(45.dp),  // 높이 약간 증가
+                    .height(45.dp),
                 indicator = { tabPositions ->
                     TabRowDefaults.Indicator(
                         modifier = Modifier.tabIndicatorOffset(tabPositions[selectedTabIndex]),
@@ -149,12 +149,12 @@ fun My() {
                         selected = selectedTabIndex == index,
                         onClick = { selectedTabIndex = index },
                         modifier = Modifier
-                            .padding(horizontal = 6.dp, vertical = 0.dp)  // 좌우 패딩 약간 증가
+                            .padding(horizontal = 6.dp, vertical = 0.dp)
                             .height(45.dp),
                         text = {
                             Text(
                                 text = title,
-                                style = MaterialTheme.typography.bodyMedium,  // 글자 크기 조정
+                                style = MaterialTheme.typography.bodyMedium,
                                 color = if (selectedTabIndex == index) {
                                     MaterialTheme.colorScheme.primary
                                 } else {
@@ -245,7 +245,7 @@ fun MyItem() {
                             putExtra("effecterType", item.effecterType)
                             putExtra("description", item.description)
                             putExtra("sellerId", item.sellerId)
-                            putExtra("id", item.id) // document ID 추가
+                            putExtra("id", item.id)
                         }
                         context.startActivity(intent)
                     }

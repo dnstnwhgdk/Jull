@@ -1,6 +1,5 @@
 import android.util.Log
 import android.widget.Toast
-import androidx.compose.foundation.Image
 import androidx.compose.foundation.gestures.detectTapGestures
 import androidx.compose.foundation.layout.*
 import androidx.compose.foundation.text.KeyboardOptions
@@ -18,12 +17,10 @@ import androidx.compose.ui.input.pointer.pointerInput
 import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.platform.LocalFocusManager
 import androidx.compose.ui.res.painterResource
-import androidx.compose.ui.text.TextStyle
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.input.KeyboardType
 import androidx.compose.ui.text.input.PasswordVisualTransformation
 import androidx.compose.ui.text.input.VisualTransformation
-import androidx.compose.ui.tooling.preview.Preview
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import androidx.navigation.NavController
@@ -37,7 +34,7 @@ fun SignUpScreen(navController: NavController) {
     val auth = FirebaseAuth.getInstance()
     val database = FirebaseDatabase.getInstance().reference
 
-    val context = LocalContext.current // Context 가져오기
+    val context = LocalContext.current
 
     var email by remember { mutableStateOf("") }
     var password by remember { mutableStateOf("") }
@@ -69,13 +66,12 @@ fun SignUpScreen(navController: NavController) {
             },
 
     ) {
-        // 헤더
+
         Row(
             modifier = Modifier.fillMaxWidth(),
             verticalAlignment = Alignment.CenterVertically
         ) {
             IconButton(onClick = {
-            /* 뒤로가기 동작 */
                 navController.navigate("login")
             }) {
                 Icon(
@@ -165,7 +161,6 @@ fun SignUpScreen(navController: NavController) {
         }
         Spacer(modifier = Modifier.height(16.dp))
 
-        // 추천인 코드
         Text(
             text = "닉네임",
             color = Color.Black,
@@ -245,7 +240,7 @@ fun SignUpScreen(navController: NavController) {
                     fontSize = 14.sp
                 )
                 Spacer(modifier = Modifier.weight(1f))
-                TextButton(onClick = { /* 내용 보기 */ }) {
+                TextButton(onClick = { }) {
                     Text("내용 보기", fontSize = 12.sp)
                 }
             }

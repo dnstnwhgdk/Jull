@@ -1,5 +1,3 @@
-
-
 import androidx.lifecycle.ViewModel
 import com.example.jull.ChatRoom
 import com.example.jull.Message

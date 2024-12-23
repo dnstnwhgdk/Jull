@@ -105,7 +105,7 @@ fun Board() {
                                     .padding(end = 8.dp),
                                 textStyle = LocalTextStyle.current.copy(fontSize = 14.sp)
                             )
-                            // Board.kt의 검색 버튼 부분을 수정
+
                             Button(
                                 onClick = {
                                     if (searchText.length < 2) {
@@ -114,7 +114,7 @@ fun Board() {
                                             "검색어는 2글자 이상 입력해주세요",
                                             Toast.LENGTH_SHORT
                                         ).show()
-                                        displayedPosts = posts  // 2글자 미만일 경우 전체 게시글 표시
+                                        displayedPosts = posts
                                     } else {
                                         displayedPosts = posts.filter { post ->
                                             post.title.contains(searchText, ignoreCase = true)
@@ -226,12 +226,11 @@ fun PostItem(
                 horizontalArrangement = Arrangement.SpaceBetween,
                 verticalAlignment = Alignment.CenterVertically
             ) {
-                // 닉네임 표시 부분을 더 강조하여 수정
                 Text(
                     text = post.authorName,
                     fontSize = 14.sp,
-                    fontWeight = FontWeight.Bold,  // 글씨를 굵게
-                    color = Color.Black  // 색상을 검정으로 변경
+                    fontWeight = FontWeight.Bold,
+                    color = Color.Black
                 )
                 Text(
                     text = SimpleDateFormat("yyyy.MM.dd HH:mm", Locale.getDefault())

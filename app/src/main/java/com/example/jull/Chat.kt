@@ -70,7 +70,6 @@ fun ChatRoomsScreen(
             color = MaterialTheme.colorScheme.onSurface
         )
 
-        // 경계선
         Box(
             modifier = Modifier
                 .fillMaxWidth()
@@ -337,7 +336,7 @@ fun DeletionConfirmationDialog(
                 )
             }
         },
-        shape = MaterialTheme.shapes.medium, // 모서리 둥글게 설정
-        backgroundColor = MaterialTheme.colorScheme.surface, // 배경색 설정
+        shape = MaterialTheme.shapes.medium,
+        backgroundColor = MaterialTheme.colorScheme.surface,
     )
 }

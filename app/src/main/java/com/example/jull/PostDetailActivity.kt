@@ -7,7 +7,6 @@ import androidx.activity.ComponentActivity
 import androidx.activity.compose.setContent
 import androidx.compose.foundation.layout.*
 import androidx.compose.foundation.lazy.LazyColumn
-import androidx.compose.foundation.lazy.items
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.filled.ArrowBack
 import androidx.compose.material.icons.filled.Delete
@@ -259,7 +258,6 @@ fun PostDetailScreen(postId: String, onBack: () -> Unit) {
                     // 댓글 입력 부분
                     item {
                         var commentText by remember { mutableStateOf("") }
-                        var showCommentDeleteDialog by remember { mutableStateOf<String?>(null) }
 
                         Column {
                             Text(

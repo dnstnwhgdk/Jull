@@ -9,13 +9,13 @@ data class Item(
     val imageUrl: String = "",
     val title: String = "",
     val subtitle: String = "",
-    val brandCategory: String = "", // 브랜드 카테고리 추가
-    val effecterType: String = "", // 이펙터 유형 카테고리 추가
+    val brandCategory: String = "",
+    val effecterType: String = "",
     val price: String = "",
     val description: String = "",
     val createdAt: Date = Date(),
     val status: String = "판매중",
-    val tradeType: String = "택배거래" // 기본값을 "택배거래"로 설정
+    val tradeType: String = "택배거래"
 
 ) {
     companion object {

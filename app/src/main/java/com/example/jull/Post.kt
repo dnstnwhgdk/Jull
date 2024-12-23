@@ -1,4 +1,3 @@
-// Post.kt
 package com.example.jull
 
 import com.google.firebase.Timestamp

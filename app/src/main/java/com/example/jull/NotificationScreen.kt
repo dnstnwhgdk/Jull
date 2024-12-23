@@ -1,10 +1,6 @@
 package com.example.jull
 
-import android.content.Intent
-import androidx.compose.foundation.clickable
 import androidx.compose.foundation.layout.*
-import androidx.compose.foundation.lazy.LazyColumn
-import androidx.compose.foundation.lazy.items
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.filled.Close
 import androidx.compose.material3.*
@@ -16,14 +12,11 @@ import com.google.firebase.auth.FirebaseAuth
 import com.google.firebase.firestore.FirebaseFirestore
 import com.google.firebase.firestore.Query
 import com.google.accompanist.flowlayout.FlowRow
-import java.text.SimpleDateFormat
-import java.util.*
 import android.widget.Toast
 import androidx.compose.foundation.BorderStroke
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.Alignment
 
-@OptIn(ExperimentalMaterial3Api::class)
 @Composable
 fun NotificationScreen() {
     var notifications by remember { mutableStateOf<List<Item>>(emptyList()) }
@@ -67,7 +60,7 @@ fun NotificationScreen() {
     Column(
         modifier = Modifier
             .fillMaxSize()
-            .padding(16.dp)  // 전체 화면의 기본 패딩
+            .padding(16.dp)
     ) {
         // 키워드 관리 섹션
         Column(
@@ -86,7 +79,7 @@ fun NotificationScreen() {
                 )
                 TextButton(
                     onClick = { showAddKeywordDialog = true },
-                    contentPadding = PaddingValues(horizontal = 8.dp)  // 버튼 내부 패딩 축소
+                    contentPadding = PaddingValues(horizontal = 8.dp)
                 ) {
                     Text("키워드 추가")
                 }
@@ -122,7 +115,7 @@ fun NotificationScreen() {
                             }
                         },
                         modifier = Modifier.padding(end = 4.dp, bottom = 4.dp),
-                        border = BorderStroke(0.5.dp, MaterialTheme.colorScheme.outline),  // border 직접 설정
+                        border = BorderStroke(0.5.dp, MaterialTheme.colorScheme.outline),
                         colors = AssistChipDefaults.assistChipColors(
                             containerColor = MaterialTheme.colorScheme.surface
                         )

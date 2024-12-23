@@ -28,16 +28,6 @@
             android:exported="false"
             android:theme="@style/Theme.Jull" />
         <activity
-            android:name=".CreateActivity"
-            android:exported="false"
-            android:label="@string/title_activity_create"
-            android:theme="@style/Theme.Jull" />
-        <activity
-            android:name=".ui.theme.MainNav"
-            android:exported="false"
-            android:label="@string/title_activity_main_nav"
-            android:theme="@style/Theme.Jull" />
-        <activity
             android:name=".LoginActivity"
             android:exported="false"
             android:label="@string/title_activity_login"
